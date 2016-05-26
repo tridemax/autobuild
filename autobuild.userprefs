@@ -1,0 +1,16 @@
+﻿<Properties StartupItem="autobuild.cproj">
+  <MonoDevelop.Ide.Workspace ActiveConfiguration="Debug" />
+  <MonoDevelop.Ide.Workbench ActiveDocument="autobuild.cproj">
+    <Files>
+      <File FileName="platform/linux/main.cpp" Line="1" Column="1" />
+      <File FileName="platform/linux/platform.h" Line="68" Column="10" />
+      <File FileName="autobuild.cproj" Line="55" Column="20" />
+    </Files>
+  </MonoDevelop.Ide.Workbench>
+  <MonoDevelop.Ide.DebuggingService.Breakpoints>
+    <BreakpointStore>
+      <RunToCursorBreakpoint file="/home/danek/Repos/autobuilder/platform/linux/platform.h" line="68" column="41" />
+    </BreakpointStore>
+  </MonoDevelop.Ide.DebuggingService.Breakpoints>
+  <MonoDevelop.Ide.DebuggingService.PinnedWatches />
+</Properties>
