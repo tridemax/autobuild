@@ -5,13 +5,13 @@ Project("{2857B73E-F847-4B02-9238-064979017E93}") = "autobuild", "autobuild.cpro
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
-		Debug|Any CPU = Debug|Any CPU
-		Release|Any CPU = Release|Any CPU
+		Debug|x64 = Debug|x64
+		Release|x64 = Release|x64
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{B2B094EB-300E-4590-BA48-792AEDCFF562}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{B2B094EB-300E-4590-BA48-792AEDCFF562}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{B2B094EB-300E-4590-BA48-792AEDCFF562}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{B2B094EB-300E-4590-BA48-792AEDCFF562}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B2B094EB-300E-4590-BA48-792AEDCFF562}.Debug|x64.ActiveCfg = Debug|x64
+		{B2B094EB-300E-4590-BA48-792AEDCFF562}.Debug|x64.Build.0 = Debug|x64
+		{B2B094EB-300E-4590-BA48-792AEDCFF562}.Release|x64.ActiveCfg = Release|x64
+		{B2B094EB-300E-4590-BA48-792AEDCFF562}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 EndGlobal

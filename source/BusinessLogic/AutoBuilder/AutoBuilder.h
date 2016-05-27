@@ -1,27 +1,27 @@
 #pragma once
 
-//#include "../../Auxiliary/IStream.h"
+#include "Repository.h"
 
 
 namespace AutoBuild
 {
-//	using namespace Auxiliary;
-
 	//-------------------------------------------------------------------------------------------------
 	/// AutoBuilder
 	//-------------------------------------------------------------------------------------------------
 	class AutoBuilder : public boost::noncopyable
 	{
 	private:
+		std::list<Repository>		m_repositoryList;
 		std::string					m_lastError;
 
 	public:
 		AutoBuilder();
 		~AutoBuilder();
 
-		bool Run(boost::program_options& programOptions);
+		bool Run(const char* confPath);
 		const std::string& LastError();
 
 	private:
+		bool LoadConfiguration(const char* confPath);
 	};
 }

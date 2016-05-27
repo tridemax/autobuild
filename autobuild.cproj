@@ -2,7 +2,7 @@
 <Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
-    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <Platform Condition=" '$(Platform)' == '' ">x64</Platform>
     <ProjectGuid>{B2B094EB-300E-4590-BA48-792AEDCFF562}</ProjectGuid>
     <Compiler>
       <Compiler ctype="GppCompiler" />
@@ -10,11 +10,11 @@
     <Language>CPP</Language>
     <Target>Bin</Target>
   </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|x64' ">
     <DebugSymbols>true</DebugSymbols>
-    <OutputPath>..\build\autobuild_debug</OutputPath>
+    <OutputPath>..\.build\autobuild_debug</OutputPath>
     <OutputName>autobuild</OutputName>
-    <IntermediateOutputPath>..\build\autobuild_debug</IntermediateOutputPath>
+    <IntermediateOutputPath>..\.build\autobuild_debug</IntermediateOutputPath>
     <Externalconsole>true</Externalconsole>
     <CompileTarget>Bin</CompileTarget>
     <DefineSymbols>_DEBUG DEBUG MONODEVELOP</DefineSymbols>
@@ -27,18 +27,32 @@
 		-fdata-sections
 		-ffunction-sections
 		-I../../boost
+		-I../../tbb/include
 		-I../../autobuild/platform/linux
 	</ExtraCompilerArguments>
     <ExtraLinkerArguments>
+    	-L../../autobuild/thirdparty/lib/linux
+    	-L../../tbb/lib/intel64/gcc4.4
+       	-lauxiliary_debug
+    	-ltbb_debug
+    	-lpthread
 		-Wl,--unresolved-symbols=report-all
 		-Wl,--gc-sections
 		-Wl,--stats
+		-Wl,-rpath,./
 	</ExtraLinkerArguments>
+    <ConsolePause>false</ConsolePause>
+    <CustomCommands>
+      <CustomCommands>
+        <Command type="AfterBuild" command="cp -f -v ../../tbb/lib/intel64/gcc4.4/libtbb_debug.so libtbb_debug.so" workingdir="$(SolutionDir)/../.build/autobuild_debug" />
+        <Command type="AfterBuild" command="cp -f -v ../../tbb/lib/intel64/gcc4.4/libtbb_debug.so.2 libtbb_debug.so.2" workingdir="$(SolutionDir)/../.build/autobuild_debug" />
+      </CustomCommands>
+    </CustomCommands>
   </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
-    <OutputPath>..\build\autobuild_release</OutputPath>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|x64' ">
+    <OutputPath>..\.build\autobuild_release</OutputPath>
     <OutputName>autobuild</OutputName>
-    <IntermediateOutputPath>..\build\autobuild_release</IntermediateOutputPath>
+    <IntermediateOutputPath>..\.build\autobuild_release</IntermediateOutputPath>
     <Externalconsole>true</Externalconsole>
     <CompileTarget>Bin</CompileTarget>
     <OptimizationLevel>3</OptimizationLevel>
@@ -52,21 +66,48 @@
 		-fdata-sections
 		-ffunction-sections
 		-I../../boost
+		-I../../tbb/include
 		-I../../autobuild/platform/linux
 	</ExtraCompilerArguments>
     <ExtraLinkerArguments>
+    	-L../../autobuild/thirdparty/lib/linux
+       	-L../../tbb/lib/intel64/gcc4.4
+       	-lauxiliary_release
+    	-ltbb
+    	-lpthread
 		-O3
 		-Wl,--unresolved-symbols=report-all
 		-Wl,--gc-sections
 		-Wl,--stats
+		-Wl,-rpath,./
 	</ExtraLinkerArguments>
+    <ConsolePause>false</ConsolePause>
+    <CustomCommands>
+      <CustomCommands>
+        <Command type="AfterBuild" command="cp -f -v ../../tbb/lib/intel64/gcc4.4/libtbb.so libtbb.so" workingdir="$(SolutionDir)/../.build/autobuild_release" />
+        <Command type="AfterBuild" command="cp -f -v ../../tbb/lib/intel64/gcc4.4/libtbb.so.2 libtbb.so.2" workingdir="$(SolutionDir)/../.build/autobuild_release" />
+      </CustomCommands>
+    </CustomCommands>
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="platform\linux\main.cpp" />
     <Compile Include="source\BusinessLogic\AutoBuilder\AutoBuilder.cpp" />
+    <Compile Include="source\BusinessLogic\AutoBuilder\Repository.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="platform\linux\platform.h" />
     <None Include="source\BusinessLogic\AutoBuilder\AutoBuilder.h" />
+    <None Include="source\BusinessLogic\AutoBuilder\Repository.h" />
   </ItemGroup>
+  <ProjectExtensions>
+    <MonoDevelop>
+      <Properties>
+        <Policies>
+          <TextStylePolicy FileWidth="256" TabsToSpaces="False" inheritsSet="VisualStudio" inheritsScope="text/plain" scope="text/x-c++src" />
+          <TextStylePolicy FileWidth="120" TabsToSpaces="False" inheritsSet="VisualStudio" inheritsScope="text/plain" scope="text/plain" />
+          <TextStylePolicy FileWidth="256" TabsToSpaces="False" inheritsSet="VisualStudio" inheritsScope="text/plain" scope="text/x-chdr" />
+        </Policies>
+      </Properties>
+    </MonoDevelop>
+  </ProjectExtensions>
 </Project>
