@@ -27,27 +27,6 @@ namespace AutoBuild
 
 		m_logStream << "Repository " << m_deployPath.filename() << " updating..." << std::endl;
 
-		svn_error_t* svnError = nullptr;
-		apr_pool_t* svnPool = nullptr;
-		svn_client_ctx_t* svnClientContext = nullptr;
-
-		// Create pool
-//		svnPool = svn_pool_create(nullptr);
-
-__cleanup:
-		if (svnError)
-		{
-		}
-
-		if (svnPool)
-		{
-			svn_pool_destroy(svnPool);
-		}
-
-		if (svnClientContext)
-		{
-		}
-
 		return true;
 	}
 
