@@ -29,6 +29,8 @@
 		-I../../boost
 		-I../../tbb/include
 		-I../../autobuild/platform/linux
+		-I/usr/include/apr-1.0
+		-I/usr/include/subversion-1
 	</ExtraCompilerArguments>
     <ExtraLinkerArguments>
     	-L../../autobuild/thirdparty/lib/linux
@@ -36,6 +38,9 @@
        	-lauxiliary_debug
     	-ltbb_debug
     	-lpthread
+		-l:libapr-1.a
+		-l:libaprutil-1.a
+		-l:libsvn_client-1.a
 		-Wl,--unresolved-symbols=report-all
 		-Wl,--gc-sections
 		-Wl,--stats
@@ -68,6 +73,8 @@
 		-I../../boost
 		-I../../tbb/include
 		-I../../autobuild/platform/linux
+		-I/usr/include/apr-1.0
+		-I/usr/include/subversion-1
 	</ExtraCompilerArguments>
     <ExtraLinkerArguments>
     	-L../../autobuild/thirdparty/lib/linux
@@ -75,6 +82,9 @@
        	-lauxiliary_release
     	-ltbb
     	-lpthread
+		-l:libapr-1.a
+		-l:libaprutil-1.a
+		-l:libsvn_client-1.a
 		-O3
 		-Wl,--unresolved-symbols=report-all
 		-Wl,--gc-sections

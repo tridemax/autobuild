@@ -20,8 +20,8 @@ namespace AutoBuild
 		m_repositoryList.clear();
 
 		// Clear all logs
-		boost::filesystem::remove_all(Repository::LogPath);
-		boost::filesystem::create_directories(Repository::LogPath);
+		boost::filesystem::remove_all(Repository::LogsFolder);
+		boost::filesystem::create_directories(Repository::LogsFolder);
 
 		// Load configuration
 		if (!LoadConfiguration(confPath))
@@ -35,18 +35,18 @@ namespace AutoBuild
 
 		for (auto& repository : m_repositoryList)
 		{
-			if (!repository.m_hasConfig)
+			if (!repository->m_hasConfig)
 			{
 				continue;
 			}
 
 			taskGroup.run([&repository]()
 			{
-				if (!repository.Update())
+				if (!repository->Update())
 				{
 				}
 
-				repository.Build();
+				repository->Build();
 			});
 		}
 
@@ -79,11 +79,12 @@ namespace AutoBuild
 			return false;
 		}
 
+		// Load repositories
 		for (const auto& repositoryConfig : propertyTree.get_child("repos"))
 		{
-			m_repositoryList.emplace_back(Repository());
+			m_repositoryList.emplace_back(new Repository());
 
-			Repository& repository = m_repositoryList.back();
+			Repository& repository = *m_repositoryList.back().get();
 			repository.m_hasConfig = true;
 
 			// Try read 'sourceControl' property

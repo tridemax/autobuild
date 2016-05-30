@@ -6,24 +6,27 @@ namespace AutoBuild
 	//-------------------------------------------------------------------------------------------------
 	/// Repository
 	//-------------------------------------------------------------------------------------------------
-	class Repository
+	class Repository : public boost::noncopyable
 	{
 	private:
 		friend class AutoBuilder;
 
 	private:
-		bool						m_hasConfig;
 		std::string					m_sourceControl;
 		std::string					m_sourceControlLogin;
 		std::string					m_sourceControlPassword;
 		std::string					m_sourceUrl;
-		std::string					m_localPath;
+		boost::filesystem::path		m_localPath;
 		std::string					m_projectFile;
 		std::string					m_projectConfiguration;
-		std::string					m_deployPath;
+		boost::filesystem::path		m_deployPath;
 		std::string					m_dependentDaemons;
 
-		static const char			LogPath[];
+		bool						m_hasConfig;
+
+		std::ofstream				m_logStream;
+
+		static const char			LogsFolder[];
 
 	public:
 		Repository();
@@ -34,5 +37,6 @@ namespace AutoBuild
 		bool Deploy();
 
 	private:
+		bool OpenLogStream();
 	};
 }

@@ -11,7 +11,10 @@ namespace AutoBuild
 	class AutoBuilder : public boost::noncopyable
 	{
 	private:
-		std::list<Repository>		m_repositoryList;
+		typedef std::vector<std::unique_ptr<Repository>> RepositoryList;
+
+	private:
+		RepositoryList				m_repositoryList;
 		std::string					m_lastError;
 
 	public:
