@@ -30,7 +30,8 @@ QMAKE_CXXFLAGS_WARN_ON += \
 	-Wno-unused-local-typedefs \
 	-Wno-attributes \
 	-Wno-unused-but-set-variable \
-	-Wno-unused-result
+	-Wno-unused-result \
+	-Wno-switch
 
 #-------------------------------------------------------------------------------------------------
 # compiler flags
@@ -117,4 +118,5 @@ SOURCES += \
 HEADERS += \
     platform/linux/platform.h \
     source/BusinessLogic/AutoBuilder/AutoBuilder.h \
-    source/BusinessLogic/AutoBuilder/Repository.h
+    source/BusinessLogic/AutoBuilder/Repository.h \
+    source/BusinessLogic/AutoBuilder/Miscellaneous.h

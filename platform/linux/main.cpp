@@ -23,8 +23,6 @@ int main(int argc, const char** argv)
 		configPath = elfPath.string();
 	}
 
-	std::cout << configPath << std::endl;
-
 	// Run the autobuild
 	AutoBuild::AutoBuilder autoBuilder;
 

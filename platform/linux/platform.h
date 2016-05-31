@@ -67,6 +67,7 @@
 #include <boost/noncopyable.hpp>
 #include <boost/variant.hpp>
 #include <boost/filesystem.hpp>
+#include <boost/algorithm/string.hpp>
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/json_parser.hpp>
 
@@ -100,5 +101,5 @@ constexpr size_t _countof( ArrayType (&)[Dimension] )
 //-------------------------------------------------------------------------------------------------
 /// defines
 //-------------------------------------------------------------------------------------------------
-#define __forceinline					__attribute__((always_inline))
-#define _alloca							alloca
+#define forceinline					inline __attribute__((always_inline))
+#define selectany					__attribute__((weak))

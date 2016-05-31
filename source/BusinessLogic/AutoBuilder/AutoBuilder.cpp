@@ -19,14 +19,22 @@ namespace AutoBuild
 	{
 		m_repositoryList.clear();
 
-		// Clear all logs
-		boost::filesystem::remove_all(Repository::LogsFolder);
-		boost::filesystem::create_directories(Repository::LogsFolder);
-
 		// Load configuration
 		if (!LoadConfiguration(confPath))
 		{
 			assert(false);
+			return false;
+		}
+
+		// Clear all logs
+		try
+		{
+			boost::filesystem::remove_all(Repository::LogsFolder);
+			boost::filesystem::create_directories(Repository::LogsFolder);
+		}
+		catch (std::exception& ex)
+		{
+			m_lastError = ex.what();
 			return false;
 		}
 
@@ -35,18 +43,20 @@ namespace AutoBuild
 
 		for (auto& repository : m_repositoryList)
 		{
-			if (!repository->m_hasConfig)
+			if (!repository->IsValid())
 			{
 				continue;
 			}
 
 			taskGroup.run([&repository]()
 			{
-				if (!repository->Update())
+				if (repository->Update())
 				{
+					if (repository->HasUpdates())
+					{
+						repository->Build();
+					}
 				}
-
-				repository->Build();
 			});
 		}
 
@@ -84,107 +94,7 @@ namespace AutoBuild
 		{
 			m_repositoryList.emplace_back(new Repository());
 
-			Repository& repository = *m_repositoryList.back().get();
-			repository.m_hasConfig = true;
-
-			// Try read 'sourceControl' property
-			try
-			{
-				repository.m_sourceControl = repositoryConfig.second.get<std::string>("sourceControl");
-			}
-			catch (...)
-			{
-				repository.m_hasConfig = false;
-				std::cout << "One of the repositories has no 'sourceControl' property." << std::endl;
-			}
-
-			// Try read 'sourceControlLogin' property
-			try
-			{
-				repository.m_sourceControlLogin = repositoryConfig.second.get<std::string>("sourceControlLogin");
-			}
-			catch (...)
-			{
-				repository.m_hasConfig = false;
-				std::cout << "One of the repositories has no 'sourceControlLogin' property." << std::endl;
-			}
-
-			// Try read 'sourceControlPassword' property
-			try
-			{
-				repository.m_sourceControlPassword = repositoryConfig.second.get<std::string>("sourceControlPassword");
-			}
-			catch (...)
-			{
-				repository.m_hasConfig = false;
-				std::cout << "One of the repositories has no 'sourceControlPassword' property." << std::endl;
-			}
-
-			// Try read 'sourceUrl' property
-			try
-			{
-				repository.m_sourceUrl = repositoryConfig.second.get<std::string>("sourceUrl");
-			}
-			catch (...)
-			{
-				repository.m_hasConfig = false;
-				std::cout << "One of the repositories has no 'sourceUrl' property." << std::endl;
-			}
-
-			// Try read 'localPath' property
-			try
-			{
-				repository.m_localPath = repositoryConfig.second.get<std::string>("localPath");
-			}
-			catch (...)
-			{
-				repository.m_hasConfig = false;
-				std::cout << "One of the repositories has no 'localPath' property." << std::endl;
-			}
-
-			// Try read 'projectFile' property
-			try
-			{
-				repository.m_projectFile = repositoryConfig.second.get<std::string>("projectFile");
-			}
-			catch (...)
-			{
-				repository.m_hasConfig = false;
-				std::cout << "One of the repositories has no 'projectFile' property." << std::endl;
-			}
-
-			// Try read 'projectConfiguration' property
-			try
-			{
-				repository.m_projectConfiguration = repositoryConfig.second.get<std::string>("projectConfiguration");
-			}
-			catch (...)
-			{
-				repository.m_hasConfig = false;
-				std::cout << "One of the repositories has no 'projectConfiguration' property." << std::endl;
-			}
-
-			// Try read 'deployPath' property
-			try
-			{
-				repository.m_deployPath = repositoryConfig.second.get<std::string>("deployPath");
-			}
-			catch (...)
-			{
-				repository.m_hasConfig = false;
-				std::cout << "One of the repositories has no 'deployPath' property." << std::endl;
-			}
-
-			// Try read 'dependentDaemons' property
-			try
-			{
-				repository.m_dependentDaemons = repositoryConfig.second.get<std::string>("dependentDaemons");
-			}
-			catch (...)
-			{
-				repository.m_hasConfig = false;
-				std::cout << "One of the repositories has no 'dependentDaemons' property." << std::endl;
-			}
+			m_repositoryList.back()->LoadConfiguration(repositoryConfig);
 		}
 
 		return true;
