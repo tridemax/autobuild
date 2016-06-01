@@ -50,12 +50,9 @@ namespace AutoBuild
 
 			taskGroup.run([&repository]()
 			{
-				if (repository->Update())
+				if (repository->Update() && repository->HasUpdates())
 				{
-					if (repository->HasUpdates())
-					{
-						repository->Build();
-					}
+					repository->Build();
 				}
 			});
 		}

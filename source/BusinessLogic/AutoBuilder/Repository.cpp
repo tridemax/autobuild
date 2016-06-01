@@ -171,28 +171,30 @@ namespace AutoBuild
 		switch (m_sourceControl)
 		{
 		case SourceControl::Subversion:
-			if (!SubversionUpdate())
+			if (boost::filesystem::is_directory(m_localPath / ".svn") && SubversionUpdate())
+			{
+				m_logStream << "Successfully updated." << std::endl;
+			}
+			else
 			{
 				boost::filesystem::remove_all(m_localPath);
 
-				if (!SubversionLoad())
+				if (SubversionLoad())
 				{
-					m_logStream << "Failed to update the repository using subversion." << std::endl;
+					m_hasUpdates = true;
+					m_logStream << "Successfully checked out." << std::endl;
+				}
+				else
+				{
+					m_logStream << "Failed to check out the repository using subversion." << std::endl;
 					return false;
 				}
 			}
 			break;
 
 		case SourceControl::Git:
-			if (!GitUpdate())
-			{
-				m_logStream << "Failed to update the repository using git." << std::endl;
-				return false;
-			}
 			break;
 		}
-
-		m_logStream << "Completed." << std::endl;
 
 		return true;
 	}
@@ -200,6 +202,25 @@ namespace AutoBuild
 	//-------------------------------------------------------------------------------------------------
 	bool Repository::Build()
 	{
+		// Setup logging
+		if (!OpenLogStream())
+		{
+			assert(false);
+			return false;
+		}
+
+		m_logStream << std::endl << "Building..." << std::endl;
+
+		// Run specific build method
+		switch (m_buildMethod)
+		{
+		case BuildMethod::Xbuild:
+			break;
+
+		case BuildMethod::Qmake:
+			break;
+		}
+
 		return true;
 	}
 
@@ -238,23 +259,57 @@ namespace AutoBuild
 		commandLine += m_sourceControlPassword;
 		commandLine += ' ';
 		commandLine += m_localPath.string();
+		commandLine += " 2>&1";
 
-		boost::algorithm::replace_all(commandLine, "\'", "\\\'");
-		boost::algorithm::replace_all(commandLine, "\"", "\\\"");
+		boost::replace_all(commandLine, "\'", "\\\'");
+		boost::replace_all(commandLine, "\"", "\\\"");
 
 		// Run the command
 		FILE* processPipe = popen(commandLine.c_str(), "r");
 
-		char ch;
-		while ((ch = fgetc(processPipe)) != EOF)
+		if (!processPipe)
 		{
-			std::cout.put(ch);
-			m_logStream.put(ch);
+			m_logStream << "Failed to run command: " << commandLine << std::endl;
+			assert(false);
+			return false;
+		}
+
+		// Read subversion output
+		bool successFlag = false;
+		char* lineBuffer = reinterpret_cast<char*>(malloc(512));
+		size_t lineLength = 512;
+
+		while (true)
+		{
+			const ssize_t readBytes = getline(&lineBuffer, &lineLength, processPipe);
+
+			if (readBytes == -1)
+			{
+				break;
+			}
+
+			if (boost::istarts_with(lineBuffer, "svn") ||
+				boost::istarts_with(lineBuffer, "updating") ||
+				boost::istarts_with(lineBuffer, "fetching") ||
+				boost::istarts_with(lineBuffer, "external"))
+			{
+				m_logStream << lineBuffer;
+			}
+			else if (boost::istarts_with(lineBuffer, "at revision"))
+			{
+				m_logStream << lineBuffer;
+				successFlag = true;
+			}
+		}
+
+		if (lineBuffer)
+		{
+			free(lineBuffer);
 		}
 
 		pclose(processPipe);
 
-		return false;
+		return successFlag;
 	}
 
 	//-------------------------------------------------------------------------------------------------
@@ -273,26 +328,63 @@ namespace AutoBuild
 		commandLine += m_sourceUrl;
 		commandLine += ' ';
 		commandLine += m_localPath.string();
+		commandLine += " 2>&1";
 
-		boost::algorithm::replace_all(commandLine, "\'", "\\\'");
-		boost::algorithm::replace_all(commandLine, "\"", "\\\"");
+		boost::replace_all(commandLine, "\'", "\\\'");
+		boost::replace_all(commandLine, "\"", "\\\"");
 
 		// Run the command
 		FILE* processPipe = popen(commandLine.c_str(), "r");
 
-		char ch;
-		while ((ch = fgetc(processPipe)) != EOF)
+		if (!processPipe)
 		{
-			m_logStream.put(ch);
+			m_logStream << "Failed to run command: " << commandLine << std::endl;
+			assert(false);
+			return false;
+		}
+
+		// Read subversion output
+		bool successFlag = false;
+		char* lineBuffer = reinterpret_cast<char*>(malloc(512));
+		size_t lineLength = 512;
+
+		while (true)
+		{
+			const ssize_t readBytes = getline(&lineBuffer, &lineLength, processPipe);
+
+			if (readBytes == -1)
+			{
+				break;
+			}
+
+			if (boost::istarts_with(lineBuffer, "svn") ||
+				boost::istarts_with(lineBuffer, "fetching"))
+			{
+				m_logStream << lineBuffer;
+			}
+			else if (boost::istarts_with(lineBuffer, "checked out"))
+			{
+				m_logStream << lineBuffer;
+
+				if (!boost::ifind_first(lineBuffer, "external"))
+				{
+					successFlag = true;
+				}
+			}
+		}
+
+		if (lineBuffer)
+		{
+			free(lineBuffer);
 		}
 
 		pclose(processPipe);
 
-		return true;
+		return successFlag;
 	}
 
 	//-------------------------------------------------------------------------------------------------
-	bool Repository::GitUpdate()
+	bool Repository::QmakeBuild()
 	{
 		return true;
 	}

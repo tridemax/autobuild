@@ -32,7 +32,5 @@ int main(int argc, const char** argv)
 		return 1;
 	}
 
-	std::cout << "Build successfully completed." << std::endl;
-
 	return 0;
 }

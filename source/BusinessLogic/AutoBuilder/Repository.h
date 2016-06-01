@@ -52,7 +52,6 @@ namespace AutoBuild
 		bool OpenLogStream();
 		bool SubversionUpdate();
 		bool SubversionLoad();
-		bool GitUpdate();
-		bool GitLoad();
+		bool QmakeBuild();
 	};
 }
