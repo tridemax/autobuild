@@ -50,7 +50,8 @@ namespace AutoBuild
 
 	private:
 		bool OpenLogStream();
-		bool SubversionUpdate();
+		bool SubversionGetRevision(uint64_t& revisionValue);
+		bool SubversionUpdate(uint64_t& revisionValue);
 		bool SubversionLoad();
 		bool QmakeBuild();
 	};

@@ -32,9 +32,9 @@ namespace AutoBuild
 			boost::filesystem::remove_all(Repository::LogsFolder);
 			boost::filesystem::create_directories(Repository::LogsFolder);
 		}
-		catch (std::exception& ex)
+		catch (std::exception& exception)
 		{
-			m_lastError = ex.what();
+			m_lastError = exception.what();
 			return false;
 		}
 
@@ -82,7 +82,7 @@ namespace AutoBuild
 		}
 		catch (...)
 		{
-			m_lastError = "Unable to parse the configuration.";
+			m_lastError = "Failed to parse the configuration.";
 			return false;
 		}
 

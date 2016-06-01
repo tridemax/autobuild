@@ -21,12 +21,12 @@ namespace AutoBuild
 	{
 		const auto reportNoProperty = [](const char* property)
 		{
-			std::cout << "One of the repositories has no '" << property << "' property." << std::endl;
+			std::cerr << "One of the repositories has no '" << property << "' property." << std::endl;
 		};
 
 		const auto reportInvalidProperty = [](const char* property)
 		{
-			std::cout << "One of the repositories has invalid '" << property << "' property." << std::endl;
+			std::cerr << "One of the repositories has invalid '" << property << "' property." << std::endl;
 		};
 
 		// Assume all properties are valid
@@ -165,31 +165,70 @@ namespace AutoBuild
 			return false;
 		}
 
+		// Run specific source control to update a local copy of the repository
 		m_logStream << "Updating..." << std::endl;
 
-		// Run specific source control to update a local copy of the repository
 		switch (m_sourceControl)
 		{
 		case SourceControl::Subversion:
-			if (boost::filesystem::is_directory(m_localPath / ".svn") && SubversionUpdate())
+			if (boost::filesystem::is_directory(m_localPath / ".svn"))
 			{
+				uint64_t currentRevision = 0u, updatedRevision = 0u;
+
+				if (!SubversionGetRevision(currentRevision))
+				{
+					m_logStream << "Local copy is corrupted, trying to download a new one." << std::endl;
+					break;
+				}
+
+				if (!SubversionUpdate(updatedRevision))
+				{
+					m_logStream << "Failed to update local copy, trying to download a new one." << std::endl;
+					break;
+				}
+
+				m_hasUpdates = (currentRevision < updatedRevision);
+
 				m_logStream << "Successfully updated." << std::endl;
+
+				return true;
 			}
 			else
 			{
-				boost::filesystem::remove_all(m_localPath);
-
-				if (SubversionLoad())
-				{
-					m_hasUpdates = true;
-					m_logStream << "Successfully checked out." << std::endl;
-				}
-				else
-				{
-					m_logStream << "Failed to check out the repository using subversion." << std::endl;
-					return false;
-				}
+				m_logStream << "Local copy not found, trying to download a new one." << std::endl;
 			}
+			break;
+
+		case SourceControl::Git:
+			break;
+		}
+
+		// Run specific source control to load a local copy of the repository
+		m_logStream << "Loading..." << std::endl;
+
+		switch (m_sourceControl)
+		{
+		case SourceControl::Subversion:
+			try
+			{
+				boost::filesystem::remove_all(m_localPath);
+			}
+			catch (std::exception& exception)
+			{
+				m_logStream << "Unable to clear the repository because of: " << exception.what() << std::endl;
+				return false;
+			}
+
+			if (!SubversionLoad())
+			{
+				m_logStream << "Failed to load the repository using subversion." << std::endl;
+				return false;
+			}
+
+			m_hasUpdates = true;
+
+			m_logStream << "Successfully loaded." << std::endl;
+
 			break;
 
 		case SourceControl::Git:
@@ -209,9 +248,9 @@ namespace AutoBuild
 			return false;
 		}
 
+		// Run specific build method
 		m_logStream << std::endl << "Building..." << std::endl;
 
-		// Run specific build method
 		switch (m_buildMethod)
 		{
 		case BuildMethod::Xbuild:
@@ -246,7 +285,67 @@ namespace AutoBuild
 	}
 
 	//-------------------------------------------------------------------------------------------------
-	bool Repository::SubversionUpdate()
+	bool Repository::SubversionGetRevision(uint64_t& revisionValue)
+	{
+		// Build the command line
+		std::string commandLine;
+
+		commandLine.reserve(512u);
+
+		commandLine += "svn info ";
+		commandLine += m_localPath.string();
+		commandLine += " 2>&1";
+
+		boost::replace_all(commandLine, "\'", "\\\'");
+		boost::replace_all(commandLine, "\"", "\\\"");
+
+		// Run the command
+		FILE* processPipe = popen(commandLine.c_str(), "r");
+
+		if (!processPipe)
+		{
+			m_logStream << "Failed to run command: " << commandLine << std::endl;
+			assert(false);
+			return false;
+		}
+
+		// Read subversion output
+		bool successFlag = false;
+		char* lineBuffer = reinterpret_cast<char*>(malloc(512));
+		size_t lineLength = 512;
+
+		while (getline(&lineBuffer, &lineLength, processPipe) != -1)
+		{
+			if (boost::istarts_with(lineBuffer, "svn"))
+			{
+				m_logStream << lineBuffer;
+			}
+			else if (boost::istarts_with(lineBuffer, "revision"))
+			{
+				std::string revisionStr(lineBuffer + 8u);
+				boost::trim_if(revisionStr, boost::is_any_of("\r\n\t :."));
+
+				revisionValue = atoll(revisionStr.c_str());
+
+				successFlag = true;
+			}
+		}
+
+		m_logStream.flush();
+
+		// Free resources
+		if (lineBuffer)
+		{
+			free(lineBuffer);
+		}
+
+		pclose(processPipe);
+
+		return successFlag;
+	}
+
+	//-------------------------------------------------------------------------------------------------
+	bool Repository::SubversionUpdate(uint64_t& revisionValue)
 	{
 		// Build the command line
 		std::string commandLine;
@@ -279,15 +378,8 @@ namespace AutoBuild
 		char* lineBuffer = reinterpret_cast<char*>(malloc(512));
 		size_t lineLength = 512;
 
-		while (true)
+		while (getline(&lineBuffer, &lineLength, processPipe) != -1)
 		{
-			const ssize_t readBytes = getline(&lineBuffer, &lineLength, processPipe);
-
-			if (readBytes == -1)
-			{
-				break;
-			}
-
 			if (boost::istarts_with(lineBuffer, "svn") ||
 				boost::istarts_with(lineBuffer, "updating") ||
 				boost::istarts_with(lineBuffer, "fetching") ||
@@ -297,11 +389,20 @@ namespace AutoBuild
 			}
 			else if (boost::istarts_with(lineBuffer, "at revision"))
 			{
-				m_logStream << lineBuffer;
+				std::string revisionStr(lineBuffer + 11u);
+				boost::trim_if(revisionStr, boost::is_any_of("\r\n\t :."));
+
+				revisionValue = atoll(revisionStr.c_str());
+
 				successFlag = true;
+
+				m_logStream << lineBuffer;
 			}
 		}
 
+		m_logStream.flush();
+
+		// Free resources
 		if (lineBuffer)
 		{
 			free(lineBuffer);
@@ -348,15 +449,8 @@ namespace AutoBuild
 		char* lineBuffer = reinterpret_cast<char*>(malloc(512));
 		size_t lineLength = 512;
 
-		while (true)
+		while (getline(&lineBuffer, &lineLength, processPipe) != -1)
 		{
-			const ssize_t readBytes = getline(&lineBuffer, &lineLength, processPipe);
-
-			if (readBytes == -1)
-			{
-				break;
-			}
-
 			if (boost::istarts_with(lineBuffer, "svn") ||
 				boost::istarts_with(lineBuffer, "fetching"))
 			{
@@ -373,6 +467,9 @@ namespace AutoBuild
 			}
 		}
 
+		m_logStream.flush();
+
+		// Free resources
 		if (lineBuffer)
 		{
 			free(lineBuffer);
