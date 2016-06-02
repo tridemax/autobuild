@@ -7,7 +7,7 @@ namespace AutoBuild
 	const char Repository::LogsFolder[] = "/var/log/autobuild-logs";
 
 	//-------------------------------------------------------------------------------------------------
-	Repository::Repository() : m_configIsValid(false), m_hasUpdates(false)
+	Repository::Repository() : m_lastBuildStatus(BuildStatus::Unknown), m_hasUpdates(false), m_wasFinalized(false)
 	{
 	}
 
@@ -17,7 +17,7 @@ namespace AutoBuild
 	}
 
 	//-------------------------------------------------------------------------------------------------
-	void Repository::LoadConfiguration(const boost::property_tree::ptree::value_type& repositoryConfig)
+	bool Repository::LoadConfiguration(const boost::property_tree::ptree::value_type& repositoryConfig)
 	{
 		const auto reportNoProperty = [](const char* property)
 		{
@@ -30,7 +30,7 @@ namespace AutoBuild
 		};
 
 		// Assume all properties are valid
-		m_configIsValid = true;
+		bool successFlag = true;
 
 		// Try read 'sourceControl' property
 		try
@@ -39,13 +39,13 @@ namespace AutoBuild
 
 			if (m_sourceControl == SourceControl::Unknown)
 			{
-				m_configIsValid = false;
+				successFlag = false;
 				reportInvalidProperty("sourceControl");
 			}
 		}
 		catch (...)
 		{
-			m_configIsValid = false;
+			successFlag = false;
 			reportNoProperty("sourceControl");
 		}
 
@@ -56,7 +56,7 @@ namespace AutoBuild
 		}
 		catch (...)
 		{
-			m_configIsValid = false;
+			successFlag = false;
 			reportNoProperty("sourceControlLogin");
 		}
 
@@ -67,7 +67,7 @@ namespace AutoBuild
 		}
 		catch (...)
 		{
-			m_configIsValid = false;
+			successFlag = false;
 			std::cout << "One of the repositories has no 'sourceControlPassword' property." << std::endl;
 		}
 
@@ -78,7 +78,7 @@ namespace AutoBuild
 		}
 		catch (...)
 		{
-			m_configIsValid = false;
+			successFlag = false;
 			std::cout << "One of the repositories has no 'sourceUrl' property." << std::endl;
 		}
 
@@ -89,7 +89,7 @@ namespace AutoBuild
 		}
 		catch (...)
 		{
-			m_configIsValid = false;
+			successFlag = false;
 			std::cout << "One of the repositories has no 'localPath' property." << std::endl;
 		}
 
@@ -100,13 +100,13 @@ namespace AutoBuild
 
 			if (m_buildMethod == BuildMethod::Unknown)
 			{
-				m_configIsValid = false;
+				successFlag = false;
 				reportInvalidProperty("buildMethod");
 			}
 		}
 		catch (...)
 		{
-			m_configIsValid = false;
+			successFlag = false;
 			reportNoProperty("buildMethod");
 		}
 
@@ -117,8 +117,8 @@ namespace AutoBuild
 		}
 		catch (...)
 		{
-			m_configIsValid = false;
-			std::cout << "One of the repositories has no 'projectFile' property." << std::endl;
+			successFlag = false;
+			reportNoProperty("projectFile");
 		}
 
 		// Try read 'projectConfiguration' property
@@ -128,7 +128,7 @@ namespace AutoBuild
 		}
 		catch (...)
 		{
-			m_configIsValid = false;
+			successFlag = false;
 			std::cout << "One of the repositories has no 'projectConfiguration' property." << std::endl;
 		}
 
@@ -139,7 +139,7 @@ namespace AutoBuild
 		}
 		catch (...)
 		{
-			m_configIsValid = false;
+			successFlag = false;
 			std::cout << "One of the repositories has no 'deployPath' property." << std::endl;
 		}
 
@@ -150,9 +150,11 @@ namespace AutoBuild
 		}
 		catch (...)
 		{
-			m_configIsValid = false;
+			successFlag = false;
 			std::cout << "One of the repositories has no 'dependentDaemons' property." << std::endl;
 		}
+
+		return successFlag;
 	}
 
 	//-------------------------------------------------------------------------------------------------
@@ -170,6 +172,9 @@ namespace AutoBuild
 
 		switch (m_sourceControl)
 		{
+		case SourceControl::Git:
+			break;
+
 		case SourceControl::Subversion:
 			if (boost::filesystem::is_directory(m_localPath / ".svn"))
 			{
@@ -198,9 +203,6 @@ namespace AutoBuild
 				m_logStream << "Local copy not found, trying to download a new one." << std::endl;
 			}
 			break;
-
-		case SourceControl::Git:
-			break;
 		}
 
 		// Run specific source control to load a local copy of the repository
@@ -208,6 +210,9 @@ namespace AutoBuild
 
 		switch (m_sourceControl)
 		{
+		case SourceControl::Git:
+			break;
+
 		case SourceControl::Subversion:
 			try
 			{
@@ -230,9 +235,6 @@ namespace AutoBuild
 			m_logStream << "Successfully loaded." << std::endl;
 
 			break;
-
-		case SourceControl::Git:
-			break;
 		}
 
 		return true;
@@ -241,22 +243,25 @@ namespace AutoBuild
 	//-------------------------------------------------------------------------------------------------
 	bool Repository::Build()
 	{
-		// Setup logging
-		if (!OpenLogStream())
-		{
-			assert(false);
-			return false;
-		}
-
 		// Run specific build method
 		m_logStream << std::endl << "Building..." << std::endl;
 
 		switch (m_buildMethod)
 		{
-		case BuildMethod::Xbuild:
+		case BuildMethod::Qmake:
+			if (!QmakeRun())
+			{
+				m_logStream << "Failed to build the repository using qmake." << std::endl;
+				return false;
+			}
 			break;
 
-		case BuildMethod::Qmake:
+		case BuildMethod::Xbuild:
+			if (!XbuildRun())
+			{
+				m_logStream << "Failed to build the repository using xbuild." << std::endl;
+				return false;
+			}
 			break;
 		}
 
@@ -270,18 +275,109 @@ namespace AutoBuild
 	}
 
 	//-------------------------------------------------------------------------------------------------
+	void Repository::Finalize(BuildStatus buildStatus)
+	{
+		switch (buildStatus)
+		{
+		case BuildStatus::Success:
+			m_logStream << "Build status: success." << std::endl;
+			break;
+
+		case BuildStatus::UpdateFailed:
+			m_logStream << "Build status: update failed." << std::endl;
+			break;
+
+		case BuildStatus::BuildFailed:
+			m_logStream << "Build status: build failed." << std::endl;
+			break;
+
+		case BuildStatus::DeployFailed:
+			m_logStream << "Build status: deploy failed." << std::endl;
+			break;
+
+		default:
+			m_logStream << "Build status: unknown." << std::endl;
+		}
+
+		m_logStream.flush();
+		m_logStream.close();
+
+		m_wasFinalized = true;
+	}
+
+	//-------------------------------------------------------------------------------------------------
 	bool Repository::OpenLogStream()
 	{
+		// Build log path
+		boost::filesystem::path logPath;
+
+		logPath /= LogsFolder;
+		logPath /= m_deployPath.filename();
+
+		// Try extract last build status before the log will be overwritten
+		ReadLastBuildStatus(logPath.c_str());
+
+		// Truncate log file and open for writing
 		if (!m_logStream.is_open())
 		{
-			boost::filesystem::path logPath;
-			logPath /= LogsFolder;
-			logPath /= m_deployPath.filename();
-
 			m_logStream.open(logPath.c_str(), std::ios_base::out | std::ios_base::trunc);
 		}
 
 		return m_logStream.is_open();
+	}
+
+	//-------------------------------------------------------------------------------------------------
+	void Repository::ReadLastBuildStatus(const char* logPath)
+	{
+		FILE* logFile = fopen(logPath, "r");
+
+		if (!logFile)
+		{
+			m_lastBuildStatus = BuildStatus::Unknown;
+			return;
+		}
+
+		// Read subversion output
+		char* lineBuffer = reinterpret_cast<char*>(malloc(512));
+		size_t lineLength = 512;
+
+		while (getline(&lineBuffer, &lineLength, logFile) != -1)
+		{
+			if (boost::istarts_with(lineBuffer, "build status"))
+			{
+				std::string revisionStr(lineBuffer + 12u);
+				boost::trim_if(revisionStr, boost::is_any_of("\r\n\t :."));
+
+				if (strcasecmp(revisionStr.c_str(), "success") == 0)
+				{
+					 m_lastBuildStatus = BuildStatus::Success;
+				}
+				else if (strcasecmp(revisionStr.c_str(), "update failed") == 0)
+				{
+					m_lastBuildStatus = BuildStatus::UpdateFailed;
+				}
+				else if (strcasecmp(revisionStr.c_str(), "build failed") == 0)
+				{
+					m_lastBuildStatus = BuildStatus::BuildFailed;
+				}
+				else if (strcasecmp(revisionStr.c_str(), "deploy failed") == 0)
+				{
+					m_lastBuildStatus = BuildStatus::DeployFailed;
+				}
+				else
+				{
+					m_lastBuildStatus = BuildStatus::Unknown;
+				}
+			}
+		}
+
+		// Free resources
+		if (lineBuffer)
+		{
+			free(lineBuffer);
+		}
+
+		fclose(logFile);
 	}
 
 	//-------------------------------------------------------------------------------------------------
@@ -481,8 +577,75 @@ namespace AutoBuild
 	}
 
 	//-------------------------------------------------------------------------------------------------
-	bool Repository::QmakeBuild()
+	bool Repository::QmakeRun()
 	{
 		return true;
+	}
+
+	//-------------------------------------------------------------------------------------------------
+	bool Repository::XbuildRun()
+	{
+		// Build the command line
+		std::string commandLine;
+
+		commandLine.reserve(512u);
+
+		commandLine += "xbuild /nologo /verbosity:normal /target:rebuild /property:configuration=";
+		commandLine += m_projectConfiguration;
+		commandLine += " /property:platform=x64 ";
+		commandLine += (m_localPath / m_projectFile).string();
+		commandLine += " 2>&1";
+
+		boost::replace_all(commandLine, "\'", "\\\'");
+		boost::replace_all(commandLine, "\"", "\\\"");
+
+		// Run the command
+		FILE* processPipe = popen(commandLine.c_str(), "r");
+
+		if (!processPipe)
+		{
+			m_logStream << "Failed to run command: " << commandLine << std::endl;
+			assert(false);
+			return false;
+		}
+
+		// Read subversion output
+		bool successFlag = true;
+		char* lineBuffer = reinterpret_cast<char*>(malloc(512));
+		size_t lineLength = 512;
+
+		while (getline(&lineBuffer, &lineLength, processPipe) != -1)
+		{
+			m_logStream << lineBuffer;
+
+			if (boost::istarts_with(lineBuffer, "sh") ||
+				boost::istarts_with(lineBuffer, "msbuild") ||
+				boost::istarts_with(lineBuffer, "configuration"))
+			{
+//				m_logStream << lineBuffer;
+			}
+			else if (boost::ifind_first(lineBuffer, "warning"))
+			{
+//				m_logStream << lineBuffer;
+			}
+			else if (boost::ifind_first(lineBuffer, "error"))
+			{
+				successFlag = false;
+
+//				m_logStream << lineBuffer;
+			}
+		}
+
+		m_logStream.flush();
+
+		// Free resources
+		if (lineBuffer)
+		{
+			free(lineBuffer);
+		}
+
+		pclose(processPipe);
+
+		return successFlag;
 	}
 }

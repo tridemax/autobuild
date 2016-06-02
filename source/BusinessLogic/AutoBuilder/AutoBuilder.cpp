@@ -26,11 +26,13 @@ namespace AutoBuild
 			return false;
 		}
 
-		// Clear all logs
+		// Ensure logs folder exists
 		try
 		{
-			boost::filesystem::remove_all(Repository::LogsFolder);
-			boost::filesystem::create_directories(Repository::LogsFolder);
+			if (!boost::filesystem::is_directory(Repository::LogsFolder))
+			{
+				boost::filesystem::create_directories(Repository::LogsFolder);
+			}
 		}
 		catch (std::exception& exception)
 		{
@@ -43,16 +45,21 @@ namespace AutoBuild
 
 		for (auto& repository : m_repositoryList)
 		{
-			if (!repository->IsValid())
-			{
-				continue;
-			}
-
 			taskGroup.run([&repository]()
 			{
-				if (repository->Update() && repository->HasUpdates())
+				if (repository->Update())
 				{
-					repository->Build();
+					if (repository->HasUpdates() || repository->LastBuildStatus() != BuildStatus::Success)
+					{
+						if (!repository->Build())
+						{
+							repository->Finalize(BuildStatus::BuildFailed);
+						}
+					}
+				}
+				else
+				{
+					repository->Finalize(BuildStatus::UpdateFailed);
 				}
 			});
 		}
@@ -91,7 +98,10 @@ namespace AutoBuild
 		{
 			m_repositoryList.emplace_back(new Repository());
 
-			m_repositoryList.back()->LoadConfiguration(repositoryConfig);
+			if (!m_repositoryList.back()->LoadConfiguration(repositoryConfig))
+			{
+				m_repositoryList.pop_back();
+			}
 		}
 
 		return true;

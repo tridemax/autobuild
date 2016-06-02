@@ -22,9 +22,10 @@ namespace AutoBuild
 		boost::filesystem::path		m_deployPath;
 		std::string					m_dependentDaemons;
 
-		bool						m_configIsValid;
-		bool						m_hasUpdates;
 		std::ofstream				m_logStream;
+		BuildStatus					m_lastBuildStatus;
+		bool						m_hasUpdates;
+		bool						m_wasFinalized;
 
 	public:
 		static const char			LogsFolder[];
@@ -33,14 +34,15 @@ namespace AutoBuild
 		Repository();
 		~Repository();
 
-		void LoadConfiguration(const boost::property_tree::ptree::value_type& repositoryConfig);
+		bool LoadConfiguration(const boost::property_tree::ptree::value_type& repositoryConfig);
 		bool Update();
 		bool Build();
 		bool Deploy();
+		void Finalize(BuildStatus buildStatus);
 
-		inline bool IsValid() const
+		inline BuildStatus LastBuildStatus() const
 		{
-			return m_configIsValid;
+			return m_lastBuildStatus;
 		}
 
 		inline bool HasUpdates() const
@@ -48,11 +50,18 @@ namespace AutoBuild
 			return m_hasUpdates;
 		}
 
+		inline bool WasFinalized() const
+		{
+			return m_wasFinalized;
+		}
+
 	private:
 		bool OpenLogStream();
+		void ReadLastBuildStatus(const char* logPath);
 		bool SubversionGetRevision(uint64_t& revisionValue);
 		bool SubversionUpdate(uint64_t& revisionValue);
 		bool SubversionLoad();
-		bool QmakeBuild();
+		bool QmakeRun();
+		bool XbuildRun();
 	};
 }

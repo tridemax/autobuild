@@ -1,51 +1,46 @@
 #pragma once
 
+#define EnumCompare(inputString, comparedLiteral) \
+	(inputString.size() == sizeof(comparedLiteral) - 1u && memcmp(inputString.data(), comparedLiteral, sizeof(comparedLiteral) - 1u) == 0)
+
 
 namespace AutoBuild
 {
-	//-------------------------------------------------------------------------------------------------
-	/// IdVector
-	//-------------------------------------------------------------------------------------------------
-	typedef std::vector<uint64_t> IdVector;
-
 	//-------------------------------------------------------------------------------------------------
 	/// SourceControl
 	//-------------------------------------------------------------------------------------------------
 	enum class SourceControl : uint32_t
 	{
 		Unknown = 0u,
-		Subversion,
-		Git
+		Git,
+		Subversion
 	};
 
 	//-------------------------------------------------------------------------------------------------
-	/// SourceControlStringifier
-	//-------------------------------------------------------------------------------------------------
 	class SourceControlStringifier
 	{
-	public:
-		static const char			Subversion_String[];
+	private:
 		static const char			Git_String[];
+		static const char			Subversion_String[];
 
 	public:
 		static inline SourceControl FromString(const std::string& sourceControl);
 		static inline const char* ToString(SourceControl sourceControl);
 	};
 
-	//-------------------------------------------------------------------------------------------------
-	selectany const char SourceControlStringifier::Subversion_String[] = "subversion";
 	selectany const char SourceControlStringifier::Git_String[] = "git";
+	selectany const char SourceControlStringifier::Subversion_String[] = "subversion";
 
 	//-------------------------------------------------------------------------------------------------
 	inline SourceControl SourceControlStringifier::FromString(const std::string& sourceControl)
 	{
-		if (memcmp(sourceControl.data(), Subversion_String, std::min(sourceControl.size(), sizeof(Subversion_String) - 1u)) == 0)
-		{
-			return SourceControl::Subversion;
-		}
-		if (memcmp(sourceControl.data(), Git_String, std::min(sourceControl.size(), sizeof(Git_String) - 1u)) == 0)
+		if (EnumCompare(sourceControl, Git_String))
 		{
 			return SourceControl::Git;
+		}
+		if (EnumCompare(sourceControl, Subversion_String))
+		{
+			return SourceControl::Subversion;
 		}
 		return SourceControl::Unknown;
 	}
@@ -55,11 +50,11 @@ namespace AutoBuild
 	{
 		switch (sourceControl)
 		{
-		case SourceControl::Subversion:
-			return Subversion_String;
-
 		case SourceControl::Git:
 			return Git_String;
+
+		case SourceControl::Subversion:
+			return Subversion_String;
 		}
 		return "";
 	}
@@ -70,38 +65,35 @@ namespace AutoBuild
 	enum class BuildMethod : uint32_t
 	{
 		Unknown = 0u,
-		Xbuild,
-		Qmake
+		Qmake,
+		Xbuild
 	};
 
 	//-------------------------------------------------------------------------------------------------
-	/// BuildMethodStringifier
-	//-------------------------------------------------------------------------------------------------
 	class BuildMethodStringifier
 	{
-	public:
-		static const char			Xbuild_String[];
+	private:
 		static const char			Qmake_String[];
+		static const char			Xbuild_String[];
 
 	public:
 		static inline BuildMethod FromString(const std::string& buildMethod);
 		static inline const char* ToString(BuildMethod buildMethod);
 	};
 
-	//-------------------------------------------------------------------------------------------------
-	selectany const char BuildMethodStringifier::Xbuild_String[] = "xbuild";
 	selectany const char BuildMethodStringifier::Qmake_String[] = "qmake";
+	selectany const char BuildMethodStringifier::Xbuild_String[] = "xbuild";
 
 	//-------------------------------------------------------------------------------------------------
 	inline BuildMethod BuildMethodStringifier::FromString(const std::string& buildMethod)
 	{
-		if (memcmp(buildMethod.data(), Xbuild_String, std::min(buildMethod.size(), sizeof(Xbuild_String) - 1u)) == 0)
-		{
-			return BuildMethod::Xbuild;
-		}
-		if (memcmp(buildMethod.data(), Qmake_String, std::min(buildMethod.size(), sizeof(Qmake_String) - 1u)) == 0)
+		if (EnumCompare(buildMethod, Qmake_String))
 		{
 			return BuildMethod::Qmake;
+		}
+		if (EnumCompare(buildMethod, Xbuild_String))
+		{
+			return BuildMethod::Xbuild;
 		}
 		return BuildMethod::Unknown;
 	}
@@ -111,12 +103,24 @@ namespace AutoBuild
 	{
 		switch (buildMethod)
 		{
-		case BuildMethod::Xbuild:
-			return Xbuild_String;
-
 		case BuildMethod::Qmake:
 			return Qmake_String;
+
+		case BuildMethod::Xbuild:
+			return Xbuild_String;
 		}
 		return "";
 	}
+
+	//-------------------------------------------------------------------------------------------------
+	/// BuildStatus
+	//-------------------------------------------------------------------------------------------------
+	enum class BuildStatus : uint32_t
+	{
+		Unknown = 0u,
+		Success,
+		UpdateFailed,
+		BuildFailed,
+		DeployFailed
+	};
 }
