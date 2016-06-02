@@ -61,6 +61,7 @@ namespace AutoBuild
 		bool SubversionUpdate(uint64_t& revisionValue);
 		bool SubversionLoad();
 		bool QmakeRun();
+		bool MakeRun();
 		bool XbuildRun();
 	};
 }
