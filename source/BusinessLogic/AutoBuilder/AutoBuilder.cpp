@@ -47,19 +47,14 @@ namespace AutoBuild
 		{
 			taskGroup.run([&repository]()
 			{
-				if (repository->Update())
+				repository->m_attemptSuccessful = repository->Update();
+
+				if (repository->m_attemptSuccessful)
 				{
-					if (repository->HasUpdates() || repository->LastBuildStatus() != BuildStatus::Success)
+					if (repository->HasUpdates() || repository->LastAttemptFailed())
 					{
-						if (!repository->Build())
-						{
-							repository->Finalize(BuildStatus::BuildFailed);
-						}
+						repository->m_attemptSuccessful = repository->Build();
 					}
-				}
-				else
-				{
-					repository->Finalize(BuildStatus::UpdateFailed);
 				}
 			});
 		}
@@ -96,7 +91,7 @@ namespace AutoBuild
 		// Load repositories
 		for (const auto& repositoryConfig : propertyTree.get_child("repos"))
 		{
-			m_repositoryList.emplace_back(new Repository());
+			m_repositoryList.emplace_back(new RepositoryEntry());
 
 			if (!m_repositoryList.back()->LoadConfiguration(repositoryConfig))
 			{

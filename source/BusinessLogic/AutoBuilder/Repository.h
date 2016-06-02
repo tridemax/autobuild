@@ -17,18 +17,23 @@ namespace AutoBuild
 		std::string					m_sourceUrl;
 		boost::filesystem::path		m_localPath;
 		BuildMethod					m_buildMethod;
-		std::string					m_projectFile;
-		std::string					m_projectConfiguration;
+		std::string					m_buildScript;
+		std::string					m_buildConfiguration;
+		std::string					m_buildPlatform;
 		boost::filesystem::path		m_deployPath;
 		std::string					m_dependentDaemons;
 
 		std::ofstream				m_logStream;
-		BuildStatus					m_lastBuildStatus;
+		bool						m_lastAttemptFailed;
 		bool						m_hasUpdates;
-		bool						m_wasFinalized;
 
 	public:
 		static const char			LogsFolder[];
+		static const char			StageTag[];
+		static const char			DetailTag[];
+		static const char			WarningTag[];
+		static const char			ErrorTag[];
+		static const char			SuccessTag[];
 
 	public:
 		Repository();
@@ -38,11 +43,10 @@ namespace AutoBuild
 		bool Update();
 		bool Build();
 		bool Deploy();
-		void Finalize(BuildStatus buildStatus);
 
-		inline BuildStatus LastBuildStatus() const
+		inline bool LastAttemptFailed() const
 		{
-			return m_lastBuildStatus;
+			return m_lastAttemptFailed;
 		}
 
 		inline bool HasUpdates() const
@@ -50,14 +54,9 @@ namespace AutoBuild
 			return m_hasUpdates;
 		}
 
-		inline bool WasFinalized() const
-		{
-			return m_wasFinalized;
-		}
-
 	private:
 		bool OpenLogStream();
-		void ReadLastBuildStatus(const char* logPath);
+		void CheckLastAttemptStatus(const char* logPath);
 		bool SubversionGetRevision(uint64_t& revisionValue);
 		bool SubversionUpdate(uint64_t& revisionValue);
 		bool SubversionLoad();

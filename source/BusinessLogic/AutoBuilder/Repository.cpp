@@ -5,9 +5,14 @@
 namespace AutoBuild
 {
 	const char Repository::LogsFolder[] = "/var/log/autobuild-logs";
+	const char Repository::StageTag[] = "Stage:\t\t";
+	const char Repository::DetailTag[] = "Detail:\t\t";
+	const char Repository::WarningTag[] = "Warning:\t";
+	const char Repository::ErrorTag[] = "Error:\t\t";
+	const char Repository::SuccessTag[] = "Success:\t";
 
 	//-------------------------------------------------------------------------------------------------
-	Repository::Repository() : m_lastBuildStatus(BuildStatus::Unknown), m_hasUpdates(false), m_wasFinalized(false)
+	Repository::Repository() : m_lastAttemptFailed(false), m_hasUpdates(false)
 	{
 	}
 
@@ -68,7 +73,7 @@ namespace AutoBuild
 		catch (...)
 		{
 			successFlag = false;
-			std::cout << "One of the repositories has no 'sourceControlPassword' property." << std::endl;
+			reportNoProperty("sourceControlPassword");
 		}
 
 		// Try read 'sourceUrl' property
@@ -79,7 +84,7 @@ namespace AutoBuild
 		catch (...)
 		{
 			successFlag = false;
-			std::cout << "One of the repositories has no 'sourceUrl' property." << std::endl;
+			reportNoProperty("sourceUrl");
 		}
 
 		// Try read 'localPath' property
@@ -90,7 +95,7 @@ namespace AutoBuild
 		catch (...)
 		{
 			successFlag = false;
-			std::cout << "One of the repositories has no 'localPath' property." << std::endl;
+			reportNoProperty("localPath");
 		}
 
 		// Try read 'buildMethod' property
@@ -110,26 +115,37 @@ namespace AutoBuild
 			reportNoProperty("buildMethod");
 		}
 
-		// Try read 'projectFile' property
+		// Try read 'buildScript' property
 		try
 		{
-			m_projectFile = repositoryConfig.second.get<std::string>("projectFile");
+			m_buildScript = repositoryConfig.second.get<std::string>("buildScript");
 		}
 		catch (...)
 		{
 			successFlag = false;
-			reportNoProperty("projectFile");
+			reportNoProperty("buildScript");
 		}
 
-		// Try read 'projectConfiguration' property
+		// Try read 'buildConfiguration' property
 		try
 		{
-			m_projectConfiguration = repositoryConfig.second.get<std::string>("projectConfiguration");
+			m_buildConfiguration = repositoryConfig.second.get<std::string>("buildConfiguration");
 		}
 		catch (...)
 		{
 			successFlag = false;
-			std::cout << "One of the repositories has no 'projectConfiguration' property." << std::endl;
+			reportNoProperty("buildConfiguration");
+		}
+
+		// Try read 'buildPlatform' property
+		try
+		{
+			m_buildPlatform = repositoryConfig.second.get<std::string>("buildPlatform");
+		}
+		catch (...)
+		{
+			successFlag = false;
+			reportNoProperty("buildPlatform");
 		}
 
 		// Try read 'deployPath' property
@@ -140,7 +156,7 @@ namespace AutoBuild
 		catch (...)
 		{
 			successFlag = false;
-			std::cout << "One of the repositories has no 'deployPath' property." << std::endl;
+			reportNoProperty("deployPath");
 		}
 
 		// Try read 'dependentDaemons' property
@@ -151,7 +167,7 @@ namespace AutoBuild
 		catch (...)
 		{
 			successFlag = false;
-			std::cout << "One of the repositories has no 'dependentDaemons' property." << std::endl;
+			reportNoProperty("dependentDaemons");
 		}
 
 		return successFlag;
@@ -168,7 +184,7 @@ namespace AutoBuild
 		}
 
 		// Run specific source control to update a local copy of the repository
-		m_logStream << "Updating..." << std::endl;
+		m_logStream << StageTag << "Updating..." << std::endl;
 
 		switch (m_sourceControl)
 		{
@@ -182,31 +198,31 @@ namespace AutoBuild
 
 				if (!SubversionGetRevision(currentRevision))
 				{
-					m_logStream << "Local copy is corrupted, trying to download a new one." << std::endl;
+					m_logStream << WarningTag << "Local copy is corrupted, trying to download a new one." << std::endl;
 					break;
 				}
 
 				if (!SubversionUpdate(updatedRevision))
 				{
-					m_logStream << "Failed to update local copy, trying to download a new one." << std::endl;
+					m_logStream << WarningTag << "Failed to update local copy, trying to download a new one." << std::endl;
 					break;
 				}
 
 				m_hasUpdates = (currentRevision < updatedRevision);
 
-				m_logStream << "Successfully updated." << std::endl;
+				m_logStream << SuccessTag << "Updating completed." << std::endl;
 
 				return true;
 			}
 			else
 			{
-				m_logStream << "Local copy not found, trying to download a new one." << std::endl;
+				m_logStream << WarningTag << "Local copy not found, trying to download a new one." << std::endl;
 			}
 			break;
 		}
 
 		// Run specific source control to load a local copy of the repository
-		m_logStream << "Loading..." << std::endl;
+		m_logStream << StageTag << "Loading..." << std::endl;
 
 		switch (m_sourceControl)
 		{
@@ -220,19 +236,19 @@ namespace AutoBuild
 			}
 			catch (std::exception& exception)
 			{
-				m_logStream << "Unable to clear the repository because of: " << exception.what() << std::endl;
+				m_logStream << ErrorTag << "Unable to clear the repository because of: " << exception.what() << std::endl;
 				return false;
 			}
 
 			if (!SubversionLoad())
 			{
-				m_logStream << "Failed to load the repository using subversion." << std::endl;
+				m_logStream << ErrorTag << "Failed to load the repository using subversion." << std::endl;
 				return false;
 			}
 
 			m_hasUpdates = true;
 
-			m_logStream << "Successfully loaded." << std::endl;
+			m_logStream << SuccessTag << "Loading completed." << std::endl;
 
 			break;
 		}
@@ -244,24 +260,26 @@ namespace AutoBuild
 	bool Repository::Build()
 	{
 		// Run specific build method
-		m_logStream << std::endl << "Building..." << std::endl;
+		m_logStream << StageTag << "Building..." << std::endl;
 
 		switch (m_buildMethod)
 		{
 		case BuildMethod::Qmake:
 			if (!QmakeRun())
 			{
-				m_logStream << "Failed to build the repository using qmake." << std::endl;
+				m_logStream << ErrorTag << "Failed to build the repository using qmake." << std::endl;
 				return false;
 			}
+			m_logStream << SuccessTag << "Building completed." << std::endl;
 			break;
 
 		case BuildMethod::Xbuild:
 			if (!XbuildRun())
 			{
-				m_logStream << "Failed to build the repository using xbuild." << std::endl;
+				m_logStream << ErrorTag << "Failed to build the repository using xbuild." << std::endl;
 				return false;
 			}
+			m_logStream << SuccessTag << "Building completed." << std::endl;
 			break;
 		}
 
@@ -271,38 +289,9 @@ namespace AutoBuild
 	//-------------------------------------------------------------------------------------------------
 	bool Repository::Deploy()
 	{
+		m_logStream << StageTag << "Deploying..." << std::endl;
+
 		return true;
-	}
-
-	//-------------------------------------------------------------------------------------------------
-	void Repository::Finalize(BuildStatus buildStatus)
-	{
-		switch (buildStatus)
-		{
-		case BuildStatus::Success:
-			m_logStream << "Build status: success." << std::endl;
-			break;
-
-		case BuildStatus::UpdateFailed:
-			m_logStream << "Build status: update failed." << std::endl;
-			break;
-
-		case BuildStatus::BuildFailed:
-			m_logStream << "Build status: build failed." << std::endl;
-			break;
-
-		case BuildStatus::DeployFailed:
-			m_logStream << "Build status: deploy failed." << std::endl;
-			break;
-
-		default:
-			m_logStream << "Build status: unknown." << std::endl;
-		}
-
-		m_logStream.flush();
-		m_logStream.close();
-
-		m_wasFinalized = true;
 	}
 
 	//-------------------------------------------------------------------------------------------------
@@ -315,7 +304,7 @@ namespace AutoBuild
 		logPath /= m_deployPath.filename();
 
 		// Try extract last build status before the log will be overwritten
-		ReadLastBuildStatus(logPath.c_str());
+		CheckLastAttemptStatus(logPath.c_str());
 
 		// Truncate log file and open for writing
 		if (!m_logStream.is_open())
@@ -327,13 +316,13 @@ namespace AutoBuild
 	}
 
 	//-------------------------------------------------------------------------------------------------
-	void Repository::ReadLastBuildStatus(const char* logPath)
+	void Repository::CheckLastAttemptStatus(const char* logPath)
 	{
 		FILE* logFile = fopen(logPath, "r");
 
 		if (!logFile)
 		{
-			m_lastBuildStatus = BuildStatus::Unknown;
+			m_lastAttemptFailed = true;
 			return;
 		}
 
@@ -343,31 +332,10 @@ namespace AutoBuild
 
 		while (getline(&lineBuffer, &lineLength, logFile) != -1)
 		{
-			if (boost::istarts_with(lineBuffer, "build status"))
+			if (boost::istarts_with(lineBuffer, "error"))
 			{
-				std::string revisionStr(lineBuffer + 12u);
-				boost::trim_if(revisionStr, boost::is_any_of("\r\n\t :."));
-
-				if (strcasecmp(revisionStr.c_str(), "success") == 0)
-				{
-					 m_lastBuildStatus = BuildStatus::Success;
-				}
-				else if (strcasecmp(revisionStr.c_str(), "update failed") == 0)
-				{
-					m_lastBuildStatus = BuildStatus::UpdateFailed;
-				}
-				else if (strcasecmp(revisionStr.c_str(), "build failed") == 0)
-				{
-					m_lastBuildStatus = BuildStatus::BuildFailed;
-				}
-				else if (strcasecmp(revisionStr.c_str(), "deploy failed") == 0)
-				{
-					m_lastBuildStatus = BuildStatus::DeployFailed;
-				}
-				else
-				{
-					m_lastBuildStatus = BuildStatus::Unknown;
-				}
+				m_lastAttemptFailed = true;
+				break;
 			}
 		}
 
@@ -400,7 +368,7 @@ namespace AutoBuild
 
 		if (!processPipe)
 		{
-			m_logStream << "Failed to run command: " << commandLine << std::endl;
+			m_logStream << ErrorTag << "Failed to run command: " << commandLine << std::endl;
 			assert(false);
 			return false;
 		}
@@ -412,9 +380,10 @@ namespace AutoBuild
 
 		while (getline(&lineBuffer, &lineLength, processPipe) != -1)
 		{
-			if (boost::istarts_with(lineBuffer, "svn"))
+			if (boost::istarts_with(lineBuffer, "sh") ||
+				boost::istarts_with(lineBuffer, "svn"))
 			{
-				m_logStream << lineBuffer;
+				m_logStream << ErrorTag << lineBuffer;
 			}
 			else if (boost::istarts_with(lineBuffer, "revision"))
 			{
@@ -464,7 +433,7 @@ namespace AutoBuild
 
 		if (!processPipe)
 		{
-			m_logStream << "Failed to run command: " << commandLine << std::endl;
+			m_logStream << ErrorTag << "Failed to run command: " << commandLine << std::endl;
 			assert(false);
 			return false;
 		}
@@ -476,12 +445,16 @@ namespace AutoBuild
 
 		while (getline(&lineBuffer, &lineLength, processPipe) != -1)
 		{
-			if (boost::istarts_with(lineBuffer, "svn") ||
-				boost::istarts_with(lineBuffer, "updating") ||
+			if (boost::istarts_with(lineBuffer, "sh") ||
+				boost::istarts_with(lineBuffer, "svn"))
+			{
+				m_logStream << ErrorTag << lineBuffer;
+			}
+			else if (boost::istarts_with(lineBuffer, "updating") ||
 				boost::istarts_with(lineBuffer, "fetching") ||
 				boost::istarts_with(lineBuffer, "external"))
 			{
-				m_logStream << lineBuffer;
+				m_logStream << DetailTag << lineBuffer;
 			}
 			else if (boost::istarts_with(lineBuffer, "at revision"))
 			{
@@ -492,7 +465,7 @@ namespace AutoBuild
 
 				successFlag = true;
 
-				m_logStream << lineBuffer;
+				m_logStream << DetailTag << lineBuffer;
 			}
 		}
 
@@ -535,7 +508,7 @@ namespace AutoBuild
 
 		if (!processPipe)
 		{
-			m_logStream << "Failed to run command: " << commandLine << std::endl;
+			m_logStream << ErrorTag << "Failed to run command: " << commandLine << std::endl;
 			assert(false);
 			return false;
 		}
@@ -547,14 +520,18 @@ namespace AutoBuild
 
 		while (getline(&lineBuffer, &lineLength, processPipe) != -1)
 		{
-			if (boost::istarts_with(lineBuffer, "svn") ||
-				boost::istarts_with(lineBuffer, "fetching"))
+			if (boost::istarts_with(lineBuffer, "sh") ||
+				boost::istarts_with(lineBuffer, "svn"))
 			{
-				m_logStream << lineBuffer;
+				m_logStream << ErrorTag << lineBuffer;
+			}
+			else if (boost::istarts_with(lineBuffer, "fetching"))
+			{
+				m_logStream << DetailTag << lineBuffer;
 			}
 			else if (boost::istarts_with(lineBuffer, "checked out"))
 			{
-				m_logStream << lineBuffer;
+				m_logStream << DetailTag << lineBuffer;
 
 				if (!boost::ifind_first(lineBuffer, "external"))
 				{
@@ -590,10 +567,12 @@ namespace AutoBuild
 
 		commandLine.reserve(512u);
 
-		commandLine += "xbuild /nologo /verbosity:normal /target:rebuild /property:configuration=";
-		commandLine += m_projectConfiguration;
-		commandLine += " /property:platform=x64 ";
-		commandLine += (m_localPath / m_projectFile).string();
+		commandLine += "xbuild /nologo /verbosity:minimal /target:rebuild /property:configuration=";
+		commandLine += m_buildConfiguration;
+		commandLine += " /property:platform=";
+		commandLine += m_buildPlatform;
+		commandLine += ' ';
+		commandLine += (m_localPath / m_buildScript).string();
 		commandLine += " 2>&1";
 
 		boost::replace_all(commandLine, "\'", "\\\'");
@@ -604,7 +583,7 @@ namespace AutoBuild
 
 		if (!processPipe)
 		{
-			m_logStream << "Failed to run command: " << commandLine << std::endl;
+			m_logStream << ErrorTag << "Failed to run command: " << commandLine << std::endl;
 			assert(false);
 			return false;
 		}
@@ -616,23 +595,23 @@ namespace AutoBuild
 
 		while (getline(&lineBuffer, &lineLength, processPipe) != -1)
 		{
-			m_logStream << lineBuffer;
-
 			if (boost::istarts_with(lineBuffer, "sh") ||
-				boost::istarts_with(lineBuffer, "msbuild") ||
-				boost::istarts_with(lineBuffer, "configuration"))
+				boost::istarts_with(lineBuffer, "xbuild") ||
+				boost::istarts_with(lineBuffer, "msbuild"))
 			{
-//				m_logStream << lineBuffer;
+				successFlag = false;
+
+				m_logStream << ErrorTag << lineBuffer;
 			}
 			else if (boost::ifind_first(lineBuffer, "warning"))
 			{
-//				m_logStream << lineBuffer;
+				m_logStream << WarningTag << lineBuffer;
 			}
 			else if (boost::ifind_first(lineBuffer, "error"))
 			{
 				successFlag = false;
 
-//				m_logStream << lineBuffer;
+				m_logStream << ErrorTag << lineBuffer;
 			}
 		}
 

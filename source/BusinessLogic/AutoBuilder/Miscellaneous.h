@@ -111,16 +111,4 @@ namespace AutoBuild
 		}
 		return "";
 	}
-
-	//-------------------------------------------------------------------------------------------------
-	/// BuildStatus
-	//-------------------------------------------------------------------------------------------------
-	enum class BuildStatus : uint32_t
-	{
-		Unknown = 0u,
-		Success,
-		UpdateFailed,
-		BuildFailed,
-		DeployFailed
-	};
 }
