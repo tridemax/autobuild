@@ -20,8 +20,10 @@ namespace AutoBuild
 		std::string					m_buildScript;
 		std::string					m_buildConfiguration;
 		std::string					m_buildPlatform;
-		boost::filesystem::path		m_deployPath;
-		std::string					m_dependentDaemons;
+		PublishMethod				m_publishMethod;
+		boost::filesystem::path		m_primaryInstallPath;
+		boost::filesystem::path		m_secondaryInstallPath;
+		std::list<std::string>		m_dependentDaemons;
 
 		std::ofstream				m_logStream;
 		bool						m_lastAttemptFailed;
@@ -42,7 +44,7 @@ namespace AutoBuild
 		bool LoadConfiguration(const boost::property_tree::ptree::value_type& repositoryConfig);
 		bool Update();
 		bool Build();
-		bool Deploy();
+		bool Publish();
 
 		inline bool LastAttemptFailed() const
 		{
@@ -52,6 +54,21 @@ namespace AutoBuild
 		inline bool HasUpdates() const
 		{
 			return m_hasUpdates;
+		}
+
+		inline bool RequiresInstallation() const
+		{
+			return m_publishMethod == PublishMethod::Install || m_publishMethod == PublishMethod::Both;
+		}
+
+		inline const std::list<std::string>& DependentDaemons() const
+		{
+			return m_dependentDaemons;
+		}
+
+		inline void ReportIssue(const char* issueMessage)
+		{
+//			m_logStream << WarningTag << issueMessage << std::endl;
 		}
 
 	private:

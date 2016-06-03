@@ -111,4 +111,67 @@ namespace AutoBuild
 		}
 		return "";
 	}
+
+	//-------------------------------------------------------------------------------------------------
+	/// PublishMethod
+	//-------------------------------------------------------------------------------------------------
+	enum class PublishMethod : uint32_t
+	{
+		Unknown = 0u,
+		Install,
+		Upload,
+		Both
+	};
+
+	//-------------------------------------------------------------------------------------------------
+	class PublishMethodStringifier
+	{
+	private:
+		static const char			Install_String[];
+		static const char			Upload_String[];
+		static const char			Both_String[];
+
+	public:
+		static inline PublishMethod FromString(const std::string& publishMethod);
+		static inline const char* ToString(PublishMethod publishMethod);
+	};
+
+	selectany const char PublishMethodStringifier::Install_String[] = "install";
+	selectany const char PublishMethodStringifier::Upload_String[] = "upload";
+	selectany const char PublishMethodStringifier::Both_String[] = "both";
+
+	//-------------------------------------------------------------------------------------------------
+	inline PublishMethod PublishMethodStringifier::FromString(const std::string& publishMethod)
+	{
+		if (EnumCompare(publishMethod, Install_String))
+		{
+			return PublishMethod::Install;
+		}
+		if (EnumCompare(publishMethod, Upload_String))
+		{
+			return PublishMethod::Upload;
+		}
+		if (EnumCompare(publishMethod, Both_String))
+		{
+			return PublishMethod::Both;
+		}
+		return PublishMethod::Unknown;
+	}
+
+	//-------------------------------------------------------------------------------------------------
+	inline const char* PublishMethodStringifier::ToString(PublishMethod publishMethod)
+	{
+		switch (publishMethod)
+		{
+		case PublishMethod::Install:
+			return Install_String;
+
+		case PublishMethod::Upload:
+			return Upload_String;
+
+		case PublishMethod::Both:
+			return Both_String;
+		}
+		return "";
+	}
 }

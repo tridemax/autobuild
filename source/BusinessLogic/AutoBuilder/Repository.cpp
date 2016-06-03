@@ -148,21 +148,50 @@ namespace AutoBuild
 			reportNoProperty("buildPlatform");
 		}
 
-		// Try read 'deployPath' property
+		// Try read 'publishMethod' property
 		try
 		{
-			m_deployPath = repositoryConfig.second.get<std::string>("deployPath");
+			m_publishMethod = PublishMethodStringifier::FromString(repositoryConfig.second.get<std::string>("publishMethod"));
+
+			if (m_publishMethod == PublishMethod::Unknown)
+			{
+				successFlag = false;
+				reportInvalidProperty("publishMethod");
+			}
 		}
 		catch (...)
 		{
 			successFlag = false;
-			reportNoProperty("deployPath");
+			reportNoProperty("publishMethod");
+		}
+
+		// Try read 'primaryInstallPath' property
+		try
+		{
+			m_primaryInstallPath = repositoryConfig.second.get<std::string>("primaryInstallPath");
+		}
+		catch (...)
+		{
+			successFlag = false;
+			reportNoProperty("primaryInstallPath");
+		}
+
+		// Try read 'secondaryInstallPath' property
+		try
+		{
+			m_secondaryInstallPath = repositoryConfig.second.get<std::string>("secondaryInstallPath");
+		}
+		catch (...)
+		{
+			successFlag = false;
+			reportNoProperty("secondaryInstallPath");
 		}
 
 		// Try read 'dependentDaemons' property
 		try
 		{
-			m_dependentDaemons = repositoryConfig.second.get<std::string>("dependentDaemons");
+			std::string dependentDaemonsStr = repositoryConfig.second.get<std::string>("dependentDaemons");
+			boost::split(m_dependentDaemons, dependentDaemonsStr, boost::is_any_of("\t "));
 		}
 		catch (...)
 		{
@@ -292,9 +321,9 @@ namespace AutoBuild
 	}
 
 	//-------------------------------------------------------------------------------------------------
-	bool Repository::Deploy()
+	bool Repository::Publish()
 	{
-		m_logStream << StageTag << "Deploying..." << std::endl;
+//		m_logStream << StageTag << "Publishing..." << std::endl;
 
 		return true;
 	}
@@ -306,7 +335,7 @@ namespace AutoBuild
 		boost::filesystem::path logPath;
 
 		logPath /= LogsFolder;
-		logPath /= m_deployPath.filename();
+		logPath /= m_localPath.filename();
 
 		// Try extract last build status before the log will be overwritten
 		CheckLastAttemptStatus(logPath.c_str());
@@ -597,21 +626,24 @@ namespace AutoBuild
 
 		while (getline(&lineBuffer, &lineLength, processPipe) != -1)
 		{
-			m_logStream << ErrorTag << lineBuffer;
-
 			if (boost::istarts_with(lineBuffer, "sh") ||
 				boost::istarts_with(lineBuffer, "qmake"))
 			{
 				successFlag = false;
 				m_logStream << ErrorTag << lineBuffer;
 			}
+			else if (boost::ifind_first(lineBuffer, "message"))
+			{
+				m_logStream << DetailTag << lineBuffer;
+			}
 			else if (boost::ifind_first(lineBuffer, "warning"))
 			{
-//				m_logStream << WarningTag << lineBuffer;
+				m_logStream << WarningTag << lineBuffer;
 			}
-			else if (boost::ifind_first(lineBuffer, "error"))
+			else
 			{
-//				m_logStream << ErrorTag << lineBuffer;
+				successFlag = false;
+				m_logStream << ErrorTag << lineBuffer;
 			}
 		}
 

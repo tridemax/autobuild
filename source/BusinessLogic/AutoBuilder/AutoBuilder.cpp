@@ -41,27 +41,84 @@ namespace AutoBuild
 		}
 
 		// Update and build repositories
-		tbb::task_group taskGroup;
+		tbb::task_group buildingTaskGroup;
 
 		for (auto& repository : m_repositoryList)
 		{
-			taskGroup.run([&repository]()
+			buildingTaskGroup.run([&repository]()
 			{
-				repository->m_attemptSuccessful = repository->Update();
-
-				if (repository->m_attemptSuccessful)
+				if (repository->Update())
 				{
 					if (repository->HasUpdates() || repository->LastAttemptFailed())
 					{
-						repository->m_attemptSuccessful = repository->Build();
+						repository->m_readyToPublish = repository->Build();
 					}
 				}
 			});
 		}
 
-		taskGroup.wait();
+		buildingTaskGroup.wait();
 
-		// Deploy repositories
+		// Build dependencies tree
+		std::map<std::string, DependentDaemon> allDependentDaemons;
+
+		for (auto& repository : m_repositoryList)
+		{
+			if (repository->m_readyToPublish && repository->RequiresInstallation())
+			{
+				for (const auto& dependency : repository->DependentDaemons())
+				{
+					auto dependentDaemonIt = allDependentDaemons.find(dependency);
+
+					if (dependentDaemonIt == allDependentDaemons.end())
+					{
+						dependentDaemonIt = allDependentDaemons.emplace(std::make_pair(dependency, DependentDaemon())).first;
+					}
+
+					assert(dependentDaemonIt != allDependentDaemons.end());
+
+					dependentDaemonIt->second.m_associatedRepositories.push_back(repository.get());
+				}
+			}
+		}
+
+		// Stop all dependent daemons
+		for (auto& dependentDaemon : allDependentDaemons)
+		{
+			std::ostringstream outputStream;
+
+			if (!StopDaemon(dependentDaemon.first, outputStream))
+			{
+				for (auto* associatedRepository : dependentDaemon.second.m_associatedRepositories)
+				{
+//					associatedRepository->ReportIssue
+				}
+			}
+		}
+
+		// Publish repositories
+		tbb::task_group publishingTaskGroup;
+
+		for (auto& repository : m_repositoryList)
+		{
+			if (repository->m_readyToPublish)
+			{
+				repository->Publish();
+			}
+		}
+
+		publishingTaskGroup.wait();
+
+		// Start all dependent daemons
+		for (auto& dependentDaemon : allDependentDaemons)
+		{
+			std::ostringstream outputStream;
+
+			if (!StartDaemon(dependentDaemon.first, outputStream))
+			{
+
+			}
+		}
 
 		return true;
 	}
@@ -99,6 +156,18 @@ namespace AutoBuild
 			}
 		}
 
+		return true;
+	}
+
+	//-------------------------------------------------------------------------------------------------
+	bool AutoBuilder::StopDaemon(const std::string& daemonName, std::ostream& logStream)
+	{
+		return true;
+	}
+
+	//-------------------------------------------------------------------------------------------------
+	bool AutoBuilder::StartDaemon(const std::string& daemonName, std::ostream& logStream)
+	{
 		return true;
 	}
 }
