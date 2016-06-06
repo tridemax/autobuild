@@ -20,25 +20,24 @@ namespace AutoBuild
 	class SourceControlStringifier
 	{
 	private:
-		static const char			Git_String[];
-		static const char			Subversion_String[];
+		static const char			Git[];
+		static const char			Subversion[];
 
 	public:
 		static inline SourceControl FromString(const std::string& sourceControl);
-		static inline const char* ToString(SourceControl sourceControl);
 	};
 
-	selectany const char SourceControlStringifier::Git_String[] = "git";
-	selectany const char SourceControlStringifier::Subversion_String[] = "subversion";
+	selectany const char SourceControlStringifier::Git[] = "git";
+	selectany const char SourceControlStringifier::Subversion[] = "subversion";
 
 	//-------------------------------------------------------------------------------------------------
 	inline SourceControl SourceControlStringifier::FromString(const std::string& sourceControl)
 	{
-		if (EnumCompare(sourceControl, Git_String))
+		if (EnumCompare(sourceControl, Git))
 		{
 			return SourceControl::Git;
 		}
-		if (EnumCompare(sourceControl, Subversion_String))
+		if (EnumCompare(sourceControl, Subversion))
 		{
 			return SourceControl::Subversion;
 		}
@@ -46,17 +45,62 @@ namespace AutoBuild
 	}
 
 	//-------------------------------------------------------------------------------------------------
-	inline const char* SourceControlStringifier::ToString(SourceControl sourceControl)
+	/// ActionKind
+	//-------------------------------------------------------------------------------------------------
+	enum class ActionKind : uint32_t
 	{
-		switch (sourceControl)
-		{
-		case SourceControl::Git:
-			return Git_String;
+		Unknown = 0u,
+		Build,
+		Bundle,
+		Upload,
+		InstallSite,
+		InstallService
+	};
 
-		case SourceControl::Subversion:
-			return Subversion_String;
+	//-------------------------------------------------------------------------------------------------
+	class ActionKindStringifier
+	{
+	private:
+		static const char			Build[];
+		static const char			Bundle[];
+		static const char			Upload[];
+		static const char			InstallSite[];
+		static const char			InstallService[];
+
+	public:
+		static inline ActionKind FromString(const std::string& actionKind);
+	};
+
+	selectany const char ActionKindStringifier::Build[] = "build";
+	selectany const char ActionKindStringifier::Bundle[] = "bundle";
+	selectany const char ActionKindStringifier::Upload[] = "upload";
+	selectany const char ActionKindStringifier::InstallSite[] = "install-site";
+	selectany const char ActionKindStringifier::InstallService[] = "install-service";
+
+	//-------------------------------------------------------------------------------------------------
+	inline ActionKind ActionKindStringifier::FromString(const std::string& actionKind)
+	{
+		if (EnumCompare(actionKind, Build))
+		{
+			return ActionKind::Build;
 		}
-		return "";
+		if (EnumCompare(actionKind, Bundle))
+		{
+			return ActionKind::Bundle;
+		}
+		if (EnumCompare(actionKind, Upload))
+		{
+			return ActionKind::Upload;
+		}
+		if (EnumCompare(actionKind, InstallSite))
+		{
+			return ActionKind::InstallSite;
+		}
+		if (EnumCompare(actionKind, InstallService))
+		{
+			return ActionKind::InstallService;
+		}
+		return ActionKind::Unknown;
 	}
 
 	//-------------------------------------------------------------------------------------------------
@@ -65,6 +109,7 @@ namespace AutoBuild
 	enum class BuildMethod : uint32_t
 	{
 		Unknown = 0u,
+		Make,
 		Qmake,
 		Xbuild
 	};
@@ -73,25 +118,30 @@ namespace AutoBuild
 	class BuildMethodStringifier
 	{
 	private:
-		static const char			Qmake_String[];
-		static const char			Xbuild_String[];
+		static const char			Make[];
+		static const char			Qmake[];
+		static const char			Xbuild[];
 
 	public:
 		static inline BuildMethod FromString(const std::string& buildMethod);
-		static inline const char* ToString(BuildMethod buildMethod);
 	};
 
-	selectany const char BuildMethodStringifier::Qmake_String[] = "qmake";
-	selectany const char BuildMethodStringifier::Xbuild_String[] = "xbuild";
+	selectany const char BuildMethodStringifier::Make[] = "make";
+	selectany const char BuildMethodStringifier::Qmake[] = "qmake";
+	selectany const char BuildMethodStringifier::Xbuild[] = "xbuild";
 
 	//-------------------------------------------------------------------------------------------------
 	inline BuildMethod BuildMethodStringifier::FromString(const std::string& buildMethod)
 	{
-		if (EnumCompare(buildMethod, Qmake_String))
+		if (EnumCompare(buildMethod, Make))
+		{
+			return BuildMethod::Make;
+		}
+		if (EnumCompare(buildMethod, Qmake))
 		{
 			return BuildMethod::Qmake;
 		}
-		if (EnumCompare(buildMethod, Xbuild_String))
+		if (EnumCompare(buildMethod, Xbuild))
 		{
 			return BuildMethod::Xbuild;
 		}
@@ -99,79 +149,11 @@ namespace AutoBuild
 	}
 
 	//-------------------------------------------------------------------------------------------------
-	inline const char* BuildMethodStringifier::ToString(BuildMethod buildMethod)
-	{
-		switch (buildMethod)
-		{
-		case BuildMethod::Qmake:
-			return Qmake_String;
-
-		case BuildMethod::Xbuild:
-			return Xbuild_String;
-		}
-		return "";
-	}
-
+	/// Tags
 	//-------------------------------------------------------------------------------------------------
-	/// PublishMethod
-	//-------------------------------------------------------------------------------------------------
-	enum class PublishMethod : uint32_t
-	{
-		Unknown = 0u,
-		Install,
-		Upload,
-		Both
-	};
-
-	//-------------------------------------------------------------------------------------------------
-	class PublishMethodStringifier
-	{
-	private:
-		static const char			Install_String[];
-		static const char			Upload_String[];
-		static const char			Both_String[];
-
-	public:
-		static inline PublishMethod FromString(const std::string& publishMethod);
-		static inline const char* ToString(PublishMethod publishMethod);
-	};
-
-	selectany const char PublishMethodStringifier::Install_String[] = "install";
-	selectany const char PublishMethodStringifier::Upload_String[] = "upload";
-	selectany const char PublishMethodStringifier::Both_String[] = "both";
-
-	//-------------------------------------------------------------------------------------------------
-	inline PublishMethod PublishMethodStringifier::FromString(const std::string& publishMethod)
-	{
-		if (EnumCompare(publishMethod, Install_String))
-		{
-			return PublishMethod::Install;
-		}
-		if (EnumCompare(publishMethod, Upload_String))
-		{
-			return PublishMethod::Upload;
-		}
-		if (EnumCompare(publishMethod, Both_String))
-		{
-			return PublishMethod::Both;
-		}
-		return PublishMethod::Unknown;
-	}
-
-	//-------------------------------------------------------------------------------------------------
-	inline const char* PublishMethodStringifier::ToString(PublishMethod publishMethod)
-	{
-		switch (publishMethod)
-		{
-		case PublishMethod::Install:
-			return Install_String;
-
-		case PublishMethod::Upload:
-			return Upload_String;
-
-		case PublishMethod::Both:
-			return Both_String;
-		}
-		return "";
-	}
+	selectany extern const char StageTag[] = "Stage:\t\t";
+	selectany extern const char DetailTag[] = "Detail:\t\t";
+	selectany extern const char WarningTag[] = "Warning:\t";
+	selectany extern const char ErrorTag[] = "Error:\t\t";
+	selectany extern const char SuccessTag[] = "Success:\t";
 }

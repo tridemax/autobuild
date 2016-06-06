@@ -47,19 +47,14 @@ namespace AutoBuild
 		{
 			buildingTaskGroup.run([&repository]()
 			{
-				if (repository->Update())
-				{
-					if (repository->HasUpdates() || repository->LastAttemptFailed())
-					{
-						repository->m_readyToPublish = repository->Build();
-					}
-				}
+				repository->m_requiresInstallation = repository->UpdateAndBuild() && repository->RequiresInstallation();
 			});
 		}
 
 		buildingTaskGroup.wait();
 
 		// Build dependencies tree
+		/*
 		std::map<std::string, DependentDaemon> allDependentDaemons;
 
 		for (auto& repository : m_repositoryList)
@@ -81,8 +76,9 @@ namespace AutoBuild
 				}
 			}
 		}
-
+*/
 		// Stop all dependent daemons
+/*
 		for (auto& dependentDaemon : allDependentDaemons)
 		{
 			std::ostringstream outputStream;
@@ -91,25 +87,28 @@ namespace AutoBuild
 			{
 				for (auto* associatedRepository : dependentDaemon.second.m_associatedRepositories)
 				{
-//					associatedRepository->ReportIssue
 				}
 			}
 		}
-
-		// Publish repositories
-		tbb::task_group publishingTaskGroup;
+*/
+		// Install repositories
+		tbb::task_group installingTaskGroup;
 
 		for (auto& repository : m_repositoryList)
 		{
-			if (repository->m_readyToPublish)
+			if (repository->m_requiresInstallation)
 			{
-				repository->Publish();
+				installingTaskGroup.run([&repository]()
+				{
+					repository->Install();
+				});
 			}
 		}
 
-		publishingTaskGroup.wait();
+		installingTaskGroup.wait();
 
 		// Start all dependent daemons
+		/*
 		for (auto& dependentDaemon : allDependentDaemons)
 		{
 			std::ostringstream outputStream;
@@ -119,7 +118,7 @@ namespace AutoBuild
 
 			}
 		}
-
+*/
 		return true;
 	}
 
@@ -160,13 +159,13 @@ namespace AutoBuild
 	}
 
 	//-------------------------------------------------------------------------------------------------
-	bool AutoBuilder::StopDaemon(const std::string& daemonName, std::ostream& logStream)
+	bool AutoBuilder::StopService(const std::string& serviceName, std::ostream& logStream)
 	{
 		return true;
 	}
 
 	//-------------------------------------------------------------------------------------------------
-	bool AutoBuilder::StartDaemon(const std::string& daemonName, std::ostream& logStream)
+	bool AutoBuilder::StartService(const std::string& serviceName, std::ostream& logStream)
 	{
 		return true;
 	}

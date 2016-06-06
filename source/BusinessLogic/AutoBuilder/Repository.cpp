@@ -1,15 +1,14 @@
 ﻿#include "platform.h"
 #include "Repository.h"
+#include "Actions/BuildAction.h"
+#include "Actions/BundleAction.h"
+#include "Actions/InstallServiceAction.h"
+#include "Actions/InstallSiteAction.h"
 
 
 namespace AutoBuild
 {
 	const char Repository::LogsFolder[] = "/var/log/autobuild-logs";
-	const char Repository::StageTag[] = "Stage:\t\t";
-	const char Repository::DetailTag[] = "Detail:\t\t";
-	const char Repository::WarningTag[] = "Warning:\t";
-	const char Repository::ErrorTag[] = "Error:\t\t";
-	const char Repository::SuccessTag[] = "Success:\t";
 
 	//-------------------------------------------------------------------------------------------------
 	Repository::Repository() : m_lastAttemptFailed(false), m_hasUpdates(false)
@@ -24,12 +23,12 @@ namespace AutoBuild
 	//-------------------------------------------------------------------------------------------------
 	bool Repository::LoadConfiguration(const boost::property_tree::ptree::value_type& repositoryConfig)
 	{
-		const auto reportNoProperty = [](const char* property)
+		auto reportNoProperty = [](const char* property)
 		{
 			std::cerr << "One of the repositories has no '" << property << "' property." << std::endl;
 		};
 
-		const auto reportInvalidProperty = [](const char* property)
+		auto reportInvalidProperty = [](const char* property)
 		{
 			std::cerr << "One of the repositories has invalid '" << property << "' property." << std::endl;
 		};
@@ -98,112 +97,48 @@ namespace AutoBuild
 			reportNoProperty("localPath");
 		}
 
-		// Try read 'buildMethod' property
-		try
+		// Load actions
+		for (const auto& actionConfig : repositoryConfig.second.get_child("actions"))
 		{
-			m_buildMethod = BuildMethodStringifier::FromString(repositoryConfig.second.get<std::string>("buildMethod"));
+			std::unique_ptr<IAction> newAction;
 
-			if (m_buildMethod == BuildMethod::Unknown)
+			switch (ActionKindStringifier::FromString(actionConfig.second.get<std::string>("actionKind")))
 			{
-				successFlag = false;
-				reportInvalidProperty("buildMethod");
+			case ActionKind::Build:
+				newAction.reset(new BuildAction(*this));
+				break;
+
+			case ActionKind::Bundle:
+				newAction.reset(new BundleAction(*this));
+				break;
+
+			case ActionKind::InstallService:
+				newAction.reset(new InstallServiceAction(*this));
+				break;
+
+			case ActionKind::InstallSite:
+				newAction.reset(new InstallSiteAction(*this));
+				break;
 			}
-		}
-		catch (...)
-		{
-			successFlag = false;
-			reportNoProperty("buildMethod");
-		}
 
-		// Try read 'buildScript' property
-		try
-		{
-			m_buildScript = repositoryConfig.second.get<std::string>("buildScript");
-		}
-		catch (...)
-		{
-			successFlag = false;
-			reportNoProperty("buildScript");
-		}
-
-		// Try read 'buildConfiguration' property
-		try
-		{
-			m_buildConfiguration = repositoryConfig.second.get<std::string>("buildConfiguration");
-		}
-		catch (...)
-		{
-			successFlag = false;
-			reportNoProperty("buildConfiguration");
-		}
-
-		// Try read 'buildPlatform' property
-		try
-		{
-			m_buildPlatform = repositoryConfig.second.get<std::string>("buildPlatform");
-		}
-		catch (...)
-		{
-			successFlag = false;
-			reportNoProperty("buildPlatform");
-		}
-
-		// Try read 'publishMethod' property
-		try
-		{
-			m_publishMethod = PublishMethodStringifier::FromString(repositoryConfig.second.get<std::string>("publishMethod"));
-
-			if (m_publishMethod == PublishMethod::Unknown)
+			if (newAction)
 			{
-				successFlag = false;
-				reportInvalidProperty("publishMethod");
+				if (newAction->LoadConfiguration(actionConfig, reportNoProperty, reportInvalidProperty))
+				{
+					m_actionList.emplace_back(newAction.release());
+				}
 			}
-		}
-		catch (...)
-		{
-			successFlag = false;
-			reportNoProperty("publishMethod");
-		}
-
-		// Try read 'primaryInstallPath' property
-		try
-		{
-			m_primaryInstallPath = repositoryConfig.second.get<std::string>("primaryInstallPath");
-		}
-		catch (...)
-		{
-			successFlag = false;
-			reportNoProperty("primaryInstallPath");
-		}
-
-		// Try read 'secondaryInstallPath' property
-		try
-		{
-			m_secondaryInstallPath = repositoryConfig.second.get<std::string>("secondaryInstallPath");
-		}
-		catch (...)
-		{
-			successFlag = false;
-			reportNoProperty("secondaryInstallPath");
-		}
-
-		// Try read 'dependentDaemons' property
-		try
-		{
-			std::string dependentDaemonsStr = repositoryConfig.second.get<std::string>("dependentDaemons");
-			boost::split(m_dependentDaemons, dependentDaemonsStr, boost::is_any_of("\t "));
-		}
-		catch (...)
-		{
-			successFlag = false;
-			reportNoProperty("dependentDaemons");
+			else
+			{
+				reportInvalidProperty("actionKind");
+			}
 		}
 
 		return successFlag;
 	}
 
 	//-------------------------------------------------------------------------------------------------
-	bool Repository::Update()
+	bool Repository::UpdateAndBuild()
 	{
 		// Setup logging
 		if (!OpenLogStream())
@@ -212,119 +147,51 @@ namespace AutoBuild
 			return false;
 		}
 
-		// Run specific source control to update a local copy of the repository
-		m_logStream << StageTag << "Updating..." << std::endl;
-
-		switch (m_sourceControl)
+		// Update or reload
+		if (!Update())
 		{
-		case SourceControl::Git:
-			break;
-
-		case SourceControl::Subversion:
-			if (boost::filesystem::is_directory(m_localPath / ".svn"))
-			{
-				uint64_t currentRevision = 0u, updatedRevision = 0u;
-
-				if (!SubversionGetRevision(currentRevision))
-				{
-					m_logStream << WarningTag << "Local copy is corrupted, trying to download a new one." << std::endl;
-					break;
-				}
-
-				if (!SubversionUpdate(updatedRevision))
-				{
-					m_logStream << WarningTag << "Failed to update local copy, trying to download a new one." << std::endl;
-					break;
-				}
-
-				m_hasUpdates = (currentRevision < updatedRevision);
-
-				m_logStream << SuccessTag << "Updating completed." << std::endl;
-
-				return true;
-			}
-			else
-			{
-				m_logStream << WarningTag << "Local copy not found, trying to download a new one." << std::endl;
-			}
-			break;
+			assert(false);
+			return false;
 		}
 
-		// Run specific source control to load a local copy of the repository
-		m_logStream << StageTag << "Loading..." << std::endl;
-
-		switch (m_sourceControl)
+		// Run all non-install actions
+		for (auto& action : m_actionList)
 		{
-		case SourceControl::Git:
-			break;
-
-		case SourceControl::Subversion:
-			try
+			if (!action->IsInstallAction())
 			{
-				boost::filesystem::remove_all(m_localPath);
+				if (!action->Run())
+				{
+					assert(false);
+					return false;
+				}
 			}
-			catch (std::exception& exception)
-			{
-				m_logStream << ErrorTag << "Unable to clear the repository because of: " << exception.what() << std::endl;
-				return false;
-			}
-
-			if (!SubversionLoad())
-			{
-				m_logStream << ErrorTag << "Failed to load the repository using subversion." << std::endl;
-				return false;
-			}
-
-			m_hasUpdates = true;
-
-			m_logStream << SuccessTag << "Loading completed." << std::endl;
-
-			break;
 		}
 
 		return true;
 	}
 
 	//-------------------------------------------------------------------------------------------------
-	bool Repository::Build()
+	bool Repository::Install()
 	{
-		// Run specific build method
-		m_logStream << StageTag << "Building..." << std::endl;
-
-		switch (m_buildMethod)
+		// Run install actions only
+		for (auto& action : m_actionList)
 		{
-		case BuildMethod::Qmake:
-			if (!QmakeRun())
+			if (action->IsInstallAction())
 			{
-				m_logStream << ErrorTag << "Failed to build the repository using qmake." << std::endl;
-				return false;
+				if (!action->Run())
+				{
+					assert(false);
+					return false;
+				}
 			}
-			if (!MakeRun())
-			{
-				m_logStream << ErrorTag << "Failed to build the repository using make." << std::endl;
-				return false;
-			}
-			m_logStream << SuccessTag << "Building completed." << std::endl;
-			break;
-
-		case BuildMethod::Xbuild:
-			if (!XbuildRun())
-			{
-				m_logStream << ErrorTag << "Failed to build the repository using xbuild." << std::endl;
-				return false;
-			}
-			m_logStream << SuccessTag << "Building completed." << std::endl;
-			break;
 		}
 
 		return true;
 	}
 
 	//-------------------------------------------------------------------------------------------------
-	bool Repository::Publish()
+	bool Repository::RequiresInstallation() const
 	{
-//		m_logStream << StageTag << "Publishing..." << std::endl;
-
 		return true;
 	}
 
@@ -338,7 +205,8 @@ namespace AutoBuild
 		logPath /= m_localPath.filename();
 
 		// Try extract last build status before the log will be overwritten
-		CheckLastAttemptStatus(logPath.c_str());
+		m_lastAttemptFailed = false;
+		ExtractLastAttemptStatus(logPath.c_str());
 
 		// Truncate log file and open for writing
 		if (!m_logStream.is_open())
@@ -350,7 +218,7 @@ namespace AutoBuild
 	}
 
 	//-------------------------------------------------------------------------------------------------
-	void Repository::CheckLastAttemptStatus(const char* logPath)
+	void Repository::ExtractLastAttemptStatus(const char* logPath)
 	{
 		FILE* logFile = fopen(logPath, "r");
 
@@ -380,6 +248,84 @@ namespace AutoBuild
 		}
 
 		fclose(logFile);
+	}
+
+	//-------------------------------------------------------------------------------------------------
+	bool Repository::Update()
+	{
+		// Run specific source control to update a local copy of the repository
+		m_logStream << StageTag << "Updating..." << std::endl;
+		m_clock.Update();
+
+		switch (m_sourceControl)
+		{
+		case SourceControl::Git:
+			break;
+
+		case SourceControl::Subversion:
+			if (boost::filesystem::is_directory(m_localPath / ".svn"))
+			{
+				uint64_t currentRevision = 0u, updatedRevision = 0u;
+
+				if (!SubversionGetRevision(currentRevision))
+				{
+					m_logStream << WarningTag << "Local copy is corrupted, trying to download a new one." << std::endl;
+					break;
+				}
+
+				if (!SubversionUpdate(updatedRevision))
+				{
+					m_logStream << WarningTag << "Failed to update local copy, trying to download a new one." << std::endl;
+					break;
+				}
+
+				m_hasUpdates = (currentRevision < updatedRevision);
+
+				m_logStream << SuccessTag << "Updating completed (" << m_clock.DeltaMilliseconds() << "ms)." << std::endl;
+
+				return true;
+			}
+			else
+			{
+				m_logStream << WarningTag << "Local copy not found, trying to download a new one." << std::endl;
+			}
+			break;
+		}
+
+		// Run specific source control to load a local copy of the repository
+		m_logStream << StageTag << "Loading..." << std::endl;
+		m_clock.Update();
+
+		switch (m_sourceControl)
+		{
+		case SourceControl::Git:
+			break;
+
+		case SourceControl::Subversion:
+			try
+			{
+				boost::filesystem::remove_all(m_localPath);
+			}
+			catch (std::exception& exception)
+			{
+				m_logStream << ErrorTag << "Unable to clear the repository because of: " << exception.what() << std::endl;
+				return false;
+			}
+
+			if (!SubversionLoad())
+			{
+				m_logStream << ErrorTag << "Failed to load the repository using subversion." << std::endl;
+				return false;
+			}
+
+			m_hasUpdates = true;
+
+			m_logStream << SuccessTag << "Loading completed (" << m_clock.DeltaMilliseconds() << "ms)." << std::endl;
+
+			break;
+		}
+
+		return true;
 	}
 
 	//-------------------------------------------------------------------------------------------------
@@ -583,225 +529,6 @@ namespace AutoBuild
 
 		// Wait for the running process and analyze exit code
 		pclose(processPipe);
-
-		m_logStream.flush();
-
-		return successFlag;
-	}
-
-	//-------------------------------------------------------------------------------------------------
-	bool Repository::QmakeRun()
-	{
-		// Build the command line
-		std::string commandLine;
-
-		commandLine.reserve(512u);
-
-		commandLine += "cd ";
-		commandLine += m_localPath.string();
-		commandLine += " && ";
-		commandLine += "qmake -makefile -nocache -o Makefile -Wall CONFIG+=";
-		commandLine += m_buildConfiguration;
-		commandLine += ' ';
-		commandLine += m_buildScript;
-		commandLine += " 2>&1";
-
-		boost::replace_all(commandLine, "\'", "\\\'");
-		boost::replace_all(commandLine, "\"", "\\\"");
-
-		// Run the command
-		FILE* processPipe = popen(commandLine.c_str(), "r");
-
-		if (!processPipe)
-		{
-			m_logStream << ErrorTag << "Failed to run command: " << commandLine << std::endl;
-			assert(false);
-			return false;
-		}
-
-		// Read subversion output
-		bool successFlag = true;
-		char* lineBuffer = reinterpret_cast<char*>(malloc(512));
-		size_t lineLength = 512;
-
-		while (getline(&lineBuffer, &lineLength, processPipe) != -1)
-		{
-			if (boost::istarts_with(lineBuffer, "sh") ||
-				boost::istarts_with(lineBuffer, "qmake"))
-			{
-				successFlag = false;
-				m_logStream << ErrorTag << lineBuffer;
-			}
-			else if (boost::ifind_first(lineBuffer, "message"))
-			{
-				m_logStream << DetailTag << lineBuffer;
-			}
-			else if (boost::ifind_first(lineBuffer, "warning"))
-			{
-				m_logStream << WarningTag << lineBuffer;
-			}
-			else
-			{
-				successFlag = false;
-				m_logStream << ErrorTag << lineBuffer;
-			}
-		}
-
-		if (lineBuffer)
-		{
-			free(lineBuffer);
-		}
-
-		// Wait for the running process and analyze exit code
-		const auto exitCode = pclose(processPipe);
-
-		if (exitCode)
-		{
-			successFlag = false;
-			m_logStream << ErrorTag << "qmake exited with " << WEXITSTATUS(exitCode) << std::endl;
-		}
-
-		m_logStream.flush();
-
-		return successFlag;
-	}
-
-	//-------------------------------------------------------------------------------------------------
-	bool Repository::MakeRun()
-	{
-		// Build the command line
-		std::string commandLine;
-
-		commandLine.reserve(512u);
-
-		commandLine += "cd ";
-		commandLine += m_localPath.string();
-		commandLine += " && ";
-		commandLine += "make ";
-		commandLine += " 2>&1";
-
-		boost::replace_all(commandLine, "\'", "\\\'");
-		boost::replace_all(commandLine, "\"", "\\\"");
-
-		// Run the command
-		FILE* processPipe = popen(commandLine.c_str(), "r");
-
-		if (!processPipe)
-		{
-			m_logStream << ErrorTag << "Failed to run command: " << commandLine << std::endl;
-			assert(false);
-			return false;
-		}
-
-		// Read subversion output
-		bool successFlag = true;
-		char* lineBuffer = reinterpret_cast<char*>(malloc(512));
-		size_t lineLength = 512;
-
-		while (getline(&lineBuffer, &lineLength, processPipe) != -1)
-		{
-			if (boost::istarts_with(lineBuffer, "sh") ||
-				boost::istarts_with(lineBuffer, "make"))
-			{
-				successFlag = false;
-
-				m_logStream << ErrorTag << lineBuffer;
-			}
-		}
-
-		// Free resources
-		if (lineBuffer)
-		{
-			free(lineBuffer);
-		}
-
-		// Wait for the running process and analyze exit code
-		const auto exitCode = pclose(processPipe);
-
-		if (exitCode)
-		{
-			successFlag = false;
-			m_logStream << ErrorTag << "make exited with " << WEXITSTATUS(exitCode) << std::endl;
-		}
-
-		m_logStream.flush();
-
-		return successFlag;
-	}
-
-	//-------------------------------------------------------------------------------------------------
-	bool Repository::XbuildRun()
-	{
-		// Build the command line
-		std::string commandLine;
-
-		commandLine.reserve(512u);
-
-		commandLine += "cd ";
-		commandLine += m_localPath.string();
-		commandLine += " && ";
-		commandLine += "xbuild /nologo /verbosity:minimal /target:rebuild /property:configuration=";
-		commandLine += m_buildConfiguration;
-		commandLine += " /property:platform=";
-		commandLine += m_buildPlatform;
-		commandLine += ' ';
-		commandLine += m_buildScript;
-		commandLine += " 2>&1";
-
-		boost::replace_all(commandLine, "\'", "\\\'");
-		boost::replace_all(commandLine, "\"", "\\\"");
-
-		// Run the command
-		FILE* processPipe = popen(commandLine.c_str(), "r");
-
-		if (!processPipe)
-		{
-			m_logStream << ErrorTag << "Failed to run command: " << commandLine << std::endl;
-			assert(false);
-			return false;
-		}
-
-		// Read subversion output
-		bool successFlag = true;
-		char* lineBuffer = reinterpret_cast<char*>(malloc(512));
-		size_t lineLength = 512;
-
-		while (getline(&lineBuffer, &lineLength, processPipe) != -1)
-		{
-			if (boost::istarts_with(lineBuffer, "sh") ||
-				boost::istarts_with(lineBuffer, "xbuild") ||
-				boost::istarts_with(lineBuffer, "msbuild"))
-			{
-				successFlag = false;
-
-				m_logStream << ErrorTag << lineBuffer;
-			}
-			else if (boost::ifind_first(lineBuffer, "warning"))
-			{
-				m_logStream << WarningTag << lineBuffer;
-			}
-			else if (boost::ifind_first(lineBuffer, "error"))
-			{
-				successFlag = false;
-
-				m_logStream << ErrorTag << lineBuffer;
-			}
-		}
-
-		// Free resources
-		if (lineBuffer)
-		{
-			free(lineBuffer);
-		}
-
-		// Wait for the running process and analyze exit code
-		const auto exitCode = pclose(processPipe);
-
-		if (exitCode)
-		{
-			successFlag = false;
-			m_logStream << ErrorTag << "xbuild exited with " << WEXITSTATUS(exitCode) << std::endl;
-		}
 
 		m_logStream.flush();
 

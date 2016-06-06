@@ -8,7 +8,9 @@
 int main(int argc, const char** argv)
 {
 	// Open the lock
-	const auto lockDescriptor = open("/var/lock/autobuild.lock", O_WRONLY | O_CREAT | O_EXCL, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
+	static const char lockPath[] = "/var/lock/autobuild.lock";
+
+	const auto lockDescriptor = open(lockPath, O_WRONLY | O_CREAT | O_EXCL, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
 
 	if (lockDescriptor == -1)
 	{
@@ -44,6 +46,7 @@ int main(int argc, const char** argv)
 	}
 
 	// Close the lock
+	unlink(lockPath);
 	close(lockDescriptor);
 
 	return exitCode;

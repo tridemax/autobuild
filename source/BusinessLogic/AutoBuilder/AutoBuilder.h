@@ -14,14 +14,14 @@ namespace AutoBuild
 		class RepositoryEntry : public Repository
 		{
 		public:
-			bool						m_readyToPublish;
+			bool						m_requiresInstallation;
 
 		public:
-			inline RepositoryEntry() : m_readyToPublish(false) {}
+			inline RepositoryEntry() : m_requiresInstallation(false) {}
 		};
 
 		typedef std::vector<std::unique_ptr<RepositoryEntry>> RepositoryList;
-
+/*
 		class DependentDaemon
 		{
 		public:
@@ -35,7 +35,7 @@ namespace AutoBuild
 		public:
 			inline DependentDaemon() : m_stopped(false), m_started(false) {}
 		};
-
+*/
 	private:
 		RepositoryList				m_repositoryList;
 		std::string					m_lastError;
@@ -49,7 +49,7 @@ namespace AutoBuild
 
 	private:
 		bool LoadConfiguration(const char* confPath);
-		bool StopDaemon(const std::string& daemonName, std::ostream& logStream);
-		bool StartDaemon(const std::string& daemonName, std::ostream& logStream);
+		bool StopService(const std::string& serviceName, std::ostream& logStream);
+		bool StartService(const std::string& serviceName, std::ostream& logStream);
 	};
 }

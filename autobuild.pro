@@ -42,8 +42,9 @@ QMAKE_CXXFLAGS += \
 	-fpic \
 	-fdata-sections \
 	-ffunction-sections \
-	-I$$_PRO_FILE_PWD_/../boost \
 	-I$$_PRO_FILE_PWD_/../tbb/include \
+	-I$$_PRO_FILE_PWD_/../boost \
+	-I$$_PRO_FILE_PWD_/../auxiliary \
 	-I$$_PRO_FILE_PWD_/platform/linux \
 
 PRECOMPILED_HEADER = $$_PRO_FILE_PWD_/platform/linux/platform.h
@@ -113,10 +114,20 @@ QMAKE_EXTRA_TARGETS += first copydata
 SOURCES += \
     platform/linux/main.cpp \
     source/BusinessLogic/AutoBuilder/AutoBuilder.cpp \
-    source/BusinessLogic/AutoBuilder/Repository.cpp
+    source/BusinessLogic/AutoBuilder/Repository.cpp \
+    source/BusinessLogic/AutoBuilder/Actions/BuildAction.cpp \
+    source/BusinessLogic/AutoBuilder/Actions/BundleAction.cpp \
+    source/BusinessLogic/AutoBuilder/Actions/InstallSiteAction.cpp \
+    source/BusinessLogic/AutoBuilder/Actions/InstallServiceAction.cpp
 
 HEADERS += \
     platform/linux/platform.h \
     source/BusinessLogic/AutoBuilder/AutoBuilder.h \
     source/BusinessLogic/AutoBuilder/Repository.h \
-    source/BusinessLogic/AutoBuilder/Miscellaneous.h
+    source/BusinessLogic/AutoBuilder/Miscellaneous.h \
+    source/BusinessLogic/AutoBuilder/Actions/BuildAction.h \
+    source/BusinessLogic/AutoBuilder/Actions/BundleAction.h \
+    source/BusinessLogic/AutoBuilder/Actions/IAction.h \
+    source/BusinessLogic/AutoBuilder/Actions/InstallSiteAction.h \
+    source/BusinessLogic/AutoBuilder/SharedState.h \
+    source/BusinessLogic/AutoBuilder/Actions/InstallServiceAction.h
