@@ -1,13 +1,10 @@
 #pragma once
 
+#include "../Bundle/Bundle.h"
+
 
 namespace AutoBuild
 {
-	//-------------------------------------------------------------------------------------------------
-	/// Bundle
-	//-------------------------------------------------------------------------------------------------
-	typedef std::list<boost::filesystem::path> Bundle;
-
 	//-------------------------------------------------------------------------------------------------
 	/// SharedState
 	//-------------------------------------------------------------------------------------------------
@@ -16,7 +13,7 @@ namespace AutoBuild
 	public:
 		boost::filesystem::path		m_localPath;
 		Bundle						m_bundle;
-		Auxiliary::Clock			m_clock;
+		Aux::Clock					m_clock;
 		std::ofstream				m_logStream;
 	};
 
@@ -28,7 +25,7 @@ namespace AutoBuild
 	public:
 		boost::filesystem::path&	m_localPath;
 		Bundle&						m_bundle;
-		Auxiliary::Clock&			m_clock;
+		Aux::Clock&					m_clock;
 		std::ofstream&				m_logStream;
 
 	public:

@@ -118,7 +118,10 @@ SOURCES += \
     source/BusinessLogic/AutoBuilder/Actions/BuildAction.cpp \
     source/BusinessLogic/AutoBuilder/Actions/BundleAction.cpp \
     source/BusinessLogic/AutoBuilder/Actions/InstallSiteAction.cpp \
-    source/BusinessLogic/AutoBuilder/Actions/InstallServiceAction.cpp
+    source/BusinessLogic/AutoBuilder/Actions/InstallServiceAction.cpp \
+    source/BusinessLogic/Bundle/Bundle.cpp \
+    source/BusinessLogic/Bundle/File.cpp \
+    source/BusinessLogic/Bundle/Folder.cpp
 
 HEADERS += \
     platform/linux/platform.h \
@@ -130,4 +133,7 @@ HEADERS += \
     source/BusinessLogic/AutoBuilder/Actions/IAction.h \
     source/BusinessLogic/AutoBuilder/Actions/InstallSiteAction.h \
     source/BusinessLogic/AutoBuilder/SharedState.h \
-    source/BusinessLogic/AutoBuilder/Actions/InstallServiceAction.h
+    source/BusinessLogic/AutoBuilder/Actions/InstallServiceAction.h \
+    source/BusinessLogic/Bundle/Bundle.h \
+    source/BusinessLogic/Bundle/File.h \
+    source/BusinessLogic/Bundle/Folder.h

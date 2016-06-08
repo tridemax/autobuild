@@ -23,115 +23,81 @@ namespace AutoBuild
 	//-------------------------------------------------------------------------------------------------
 	bool Repository::LoadConfiguration(const boost::property_tree::ptree::value_type& repositoryConfig)
 	{
-		auto reportNoProperty = [](const char* property)
+		auto reportException = [](const char* exception)
 		{
-			std::cerr << "One of the repositories has no '" << property << "' property." << std::endl;
+			std::cerr << exception << std::endl;
 		};
 
 		auto reportInvalidProperty = [](const char* property)
 		{
-			std::cerr << "One of the repositories has invalid '" << property << "' property." << std::endl;
+			std::cerr << "Unrecognized value of '" << property << "' property." << std::endl;
 		};
 
 		// Assume all properties are valid
 		bool successFlag = true;
 
-		// Try read 'sourceControl' property
 		try
 		{
+			// Load properties
 			m_sourceControl = SourceControlStringifier::FromString(repositoryConfig.second.get<std::string>("sourceControl"));
+			m_sourceControlLogin = repositoryConfig.second.get<std::string>("sourceControlLogin");
+			m_sourceControlPassword = repositoryConfig.second.get<std::string>("sourceControlPassword");
+			m_sourceUrl = repositoryConfig.second.get<std::string>("sourceUrl");
+			m_localPath = repositoryConfig.second.get<std::string>("localPath");
 
+			// Check properties
 			if (m_sourceControl == SourceControl::Unknown)
 			{
 				successFlag = false;
 				reportInvalidProperty("sourceControl");
 			}
-		}
-		catch (...)
-		{
-			successFlag = false;
-			reportNoProperty("sourceControl");
-		}
 
-		// Try read 'sourceControlLogin' property
-		try
-		{
-			m_sourceControlLogin = repositoryConfig.second.get<std::string>("sourceControlLogin");
-		}
-		catch (...)
-		{
-			successFlag = false;
-			reportNoProperty("sourceControlLogin");
-		}
-
-		// Try read 'sourceControlPassword' property
-		try
-		{
-			m_sourceControlPassword = repositoryConfig.second.get<std::string>("sourceControlPassword");
-		}
-		catch (...)
-		{
-			successFlag = false;
-			reportNoProperty("sourceControlPassword");
-		}
-
-		// Try read 'sourceUrl' property
-		try
-		{
-			m_sourceUrl = repositoryConfig.second.get<std::string>("sourceUrl");
-		}
-		catch (...)
-		{
-			successFlag = false;
-			reportNoProperty("sourceUrl");
-		}
-
-		// Try read 'localPath' property
-		try
-		{
-			m_localPath = repositoryConfig.second.get<std::string>("localPath");
-		}
-		catch (...)
-		{
-			successFlag = false;
-			reportNoProperty("localPath");
-		}
-
-		// Load actions
-		for (const auto& actionConfig : repositoryConfig.second.get_child("actions"))
-		{
-			std::unique_ptr<IAction> newAction;
-
-			switch (ActionKindStringifier::FromString(actionConfig.second.get<std::string>("actionKind")))
+			// Load actions
+			for (const auto& actionConfig : repositoryConfig.second.get_child("actions"))
 			{
-			case ActionKind::Build:
-				newAction.reset(new BuildAction(*this));
-				break;
+				std::unique_ptr<IAction> newAction;
 
-			case ActionKind::Bundle:
-				newAction.reset(new BundleAction(*this));
-				break;
-
-			case ActionKind::InstallService:
-				newAction.reset(new InstallServiceAction(*this));
-				break;
-
-			case ActionKind::InstallSite:
-				newAction.reset(new InstallSiteAction(*this));
-				break;
-			}
-
-			if (newAction)
-			{
-				if (newAction->LoadConfiguration(actionConfig, reportNoProperty, reportInvalidProperty))
+				switch (ActionKindStringifier::FromString(actionConfig.second.get<std::string>("actionKind")))
 				{
-					m_actionList.emplace_back(newAction.release());
+				case ActionKind::Build:
+					newAction.reset(new BuildAction(*this));
+					break;
+
+				case ActionKind::Bundle:
+					newAction.reset(new BundleAction(*this));
+					break;
+
+				case ActionKind::InstallService:
+					newAction.reset(new InstallServiceAction(*this));
+					break;
+
+				case ActionKind::InstallSite:
+					newAction.reset(new InstallSiteAction(*this));
+					break;
+				}
+
+				if (newAction)
+				{
+					if (newAction->LoadConfiguration(actionConfig, reportException, reportInvalidProperty))
+					{
+						m_actionList.emplace_back(newAction.release());
+					}
+					else
+					{
+						successFlag = false;
+					}
+				}
+				else
+				{
+					successFlag = false;
+					reportInvalidProperty("actionKind");
 				}
 			}
-			else
-			{
-				reportInvalidProperty("actionKind");
-			}
+		}
+		catch (std::exception& exception)
+		{
+			successFlag = false;
+			reportException(exception.what());
 		}
 
 		return successFlag;

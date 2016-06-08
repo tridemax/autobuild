@@ -50,10 +50,7 @@
 #include <numeric>
 #include <array>
 #include <vector>
-#include <deque>
 #include <list>
-#include <map>
-#include <unordered_map>
 #include <locale>
 #include <memory>
 #include <typeindex>
@@ -61,7 +58,7 @@
 #include <chrono>
 
 //-------------------------------------------------------------------------------------------------
-/// boost/tbb
+/// boost & tbb
 //-------------------------------------------------------------------------------------------------
 #include <boost/config.hpp>
 #include <boost/noncopyable.hpp>
@@ -70,37 +67,7 @@
 #include <boost/algorithm/string.hpp>
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/json_parser.hpp>
-
+#include <boost/unordered_map.hpp>
 #include <tbb/tbb.h>
 
-//-------------------------------------------------------------------------------------------------
-/// third party
-//-------------------------------------------------------------------------------------------------
-#include "auxiliary/Clock.h"
-
-//-------------------------------------------------------------------------------------------------
-/// byte type declaration
-//-------------------------------------------------------------------------------------------------
-typedef uint8_t byte;
-
-static_assert(sizeof(byte) == 1u, "Size of \"byte\" typedef not equal to 8 bit.");
-
-//-------------------------------------------------------------------------------------------------
-///
-//-------------------------------------------------------------------------------------------------
-constexpr uint32_t makefourcc(char ch0, char ch1, char ch2, char ch3)
-{
-	return ( uint32_t(uint8_t(ch0)) | (uint32_t(uint8_t(ch1)) << 8) | (uint32_t(uint8_t(ch2)) << 16) | (uint32_t(uint8_t(ch3)) << 24) );
-}
-
-template <typename ArrayType, size_t Dimension>
-constexpr size_t _countof( ArrayType (&)[Dimension] )
-{
-	return std::extent<ArrayType[Dimension]>::value;
-}
-
-//-------------------------------------------------------------------------------------------------
-/// defines
-//-------------------------------------------------------------------------------------------------
-#define forceinline					inline __attribute__((always_inline))
-#define selectany					__attribute__((weak))
+#include <auxiliary.h>

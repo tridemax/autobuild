@@ -137,22 +137,21 @@ namespace AutoBuild
 		try
 		{
 			boost::property_tree::read_json(confPath, propertyTree);
-		}
-		catch (...)
-		{
-			m_lastError = "Failed to parse the configuration.";
-			return false;
-		}
 
-		// Load repositories
-		for (const auto& repositoryConfig : propertyTree.get_child("repos"))
-		{
-			m_repositoryList.emplace_back(new RepositoryEntry());
-
-			if (!m_repositoryList.back()->LoadConfiguration(repositoryConfig))
+			for (const auto& repositoryConfig : propertyTree.get_child("repos"))
 			{
-				m_repositoryList.pop_back();
+				std::unique_ptr<RepositoryEntry> repositoryEntry(new RepositoryEntry());
+
+				if (repositoryEntry->LoadConfiguration(repositoryConfig))
+				{
+					m_repositoryList.emplace_back(repositoryEntry.release());
+				}
 			}
+		}
+		catch (std::exception& exception)
+		{
+			m_lastError = exception.what();
+			return false;
 		}
 
 		return true;

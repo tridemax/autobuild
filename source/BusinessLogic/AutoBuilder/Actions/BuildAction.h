@@ -21,7 +21,7 @@ namespace AutoBuild
 	public:
 		BuildAction(SharedState& sharedState);
 
-		virtual	bool LoadConfiguration(const boost::property_tree::ptree::value_type& actionConfig, ExceptionReporter reportInvalidProperty, ExceptionReporter reportNoProperty) override;
+		virtual	bool LoadConfiguration(const boost::property_tree::ptree::value_type& actionConfig, ExceptionReporter reportException, ExceptionReporter reportInvalidProperty) override;
 		virtual bool Run() override;
 		virtual bool IsInstallAction() const override;
 

@@ -13,12 +13,15 @@ namespace AutoBuild
 	class BundleAction : public SharedStateRef, public IAction
 	{
 	private:
-//		BuildMethod					m_buildMethod;
+		typedef std::list<boost::filesystem::path> ItemList;
+
+	private:
+		ItemList					m_itemList;
 
 	public:
 		BundleAction(SharedState& sharedState);
 
-		virtual	bool LoadConfiguration(const boost::property_tree::ptree::value_type& actionConfig, ExceptionReporter reportNoProperty, ExceptionReporter reportInvalidProperty) override;
+		virtual	bool LoadConfiguration(const boost::property_tree::ptree::value_type& actionConfig, ExceptionReporter reportException, ExceptionReporter reportInvalidProperty) override;
 		virtual bool Run() override;
 		virtual bool IsInstallAction() const override;
 	};

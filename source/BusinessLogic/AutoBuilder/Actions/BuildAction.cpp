@@ -10,59 +10,30 @@ namespace AutoBuild
 	}
 
 	//-------------------------------------------------------------------------------------------------
-	bool BuildAction::LoadConfiguration(const boost::property_tree::ptree::value_type& actionConfig, ExceptionReporter reportNoProperty, ExceptionReporter reportInvalidProperty)
+	bool BuildAction::LoadConfiguration(const boost::property_tree::ptree::value_type& actionConfig, ExceptionReporter reportException, ExceptionReporter reportInvalidProperty)
 	{
 		// Assume all properties are valid
 		bool successFlag = true;
 
-		// Try read 'buildMethod' property
 		try
 		{
+			// Load properties
 			m_buildMethod = BuildMethodStringifier::FromString(actionConfig.second.get<std::string>("buildMethod"));
+			m_buildScript = actionConfig.second.get<std::string>("buildScript");
+			m_buildConfiguration = actionConfig.second.get<std::string>("buildConfiguration");
+			m_buildPlatform = actionConfig.second.get<std::string>("buildPlatform");
 
+			// Check properties
 			if (m_buildMethod == BuildMethod::Unknown)
 			{
 				successFlag = false;
 				reportInvalidProperty("buildMethod");
 			}
 		}
-		catch (...)
+		catch (std::exception& exception)
 		{
 			successFlag = false;
-			reportNoProperty("buildMethod");
-		}
-
-		// Try read 'buildScript' property
-		try
-		{
-			m_buildScript = actionConfig.second.get<std::string>("buildScript");
-		}
-		catch (...)
-		{
-			successFlag = false;
-			reportNoProperty("buildScript");
-		}
-
-		// Try read 'buildConfiguration' property
-		try
-		{
-			m_buildConfiguration = actionConfig.second.get<std::string>("buildConfiguration");
-		}
-		catch (...)
-		{
-			successFlag = false;
-			reportNoProperty("buildConfiguration");
-		}
-
-		// Try read 'buildPlatform' property
-		try
-		{
-			m_buildPlatform = actionConfig.second.get<std::string>("buildPlatform");
-		}
-		catch (...)
-		{
-			successFlag = false;
-			reportNoProperty("buildPlatform");
+			reportException(exception.what());
 		}
 
 		return successFlag;
