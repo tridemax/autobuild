@@ -45,20 +45,45 @@ namespace AutoBuild
 	{
 		const uint64_t nameHash = Aux::Hash64(name, strlen(name));
 
+		// Check for files with same name
 		if (m_fileMap.find(nameHash) != m_fileMap.end())
 		{
 			throw std::runtime_error(std::string("file with name '") + name + "' already exists");
 		}
 
+		// Check for folders with same name
 		if (m_folderMap.find(nameHash) != m_folderMap.end())
 		{
 			throw std::runtime_error(std::string("folder with name '") + name + "' already exists");
 		}
 
+		// Insert the folder
 		auto insertionResult = m_folderMap.emplace(nameHash, Folder(this, name));
 		assert(insertionResult.second);
 
 		return &insertionResult.first->second;
+	}
+
+	//-------------------------------------------------------------------------------------------------
+	Folder* Folder::EnsureFolder(const char* name)
+	{
+		const uint64_t nameHash = Aux::Hash64(name, strlen(name));
+
+		auto folderIt = m_folderMap.find(nameHash);
+
+		if (folderIt == m_folderMap.end())
+		{
+			// Check for files with same name
+			if (m_fileMap.find(nameHash) != m_fileMap.end())
+			{
+				throw std::runtime_error(std::string("file with name '") + name + "' already exists");
+			}
+
+			// Insert the folder
+			folderIt = m_folderMap.emplace(nameHash, Folder(this, name)).first;
+		}
+
+		return &folderIt->second;
 	}
 
 	//-------------------------------------------------------------------------------------------------
@@ -69,10 +94,7 @@ namespace AutoBuild
 
 		if (lstat(itemPath.c_str(), &itemStat) == -1)
 		{
-			char messageBuffer[512];
-			strerror_r(errno, messageBuffer, sizeof(messageBuffer));
-
-			throw std::runtime_error(std::string("unable to stat file '") + name + "' at " + localPath.c_str() + " because of: " + messageBuffer);
+			throw std::runtime_error(std::string("unable to stat file '") + name + "' at " + localPath.c_str());
 		}
 
 		// Process only regular files and folders, skip all other ones
@@ -89,16 +111,11 @@ namespace AutoBuild
 	//-------------------------------------------------------------------------------------------------
 	void Folder::ScanFileSystemInternal(const boost::filesystem::path& localPath)
 	{
-		const boost::filesystem::path folderPath = localPath / m_name;
-
-		DirStream dirStream(folderPath.c_str());
+		dir_stream dirStream(localPath.c_str());
 
 		if (!dirStream)
 		{
-			char messageBuffer[512];
-			strerror_r(errno, messageBuffer, sizeof(messageBuffer));
-
-			throw std::runtime_error(std::string("unable to open folder '") + m_name + "' at " + localPath.c_str() + " because of: " + messageBuffer);
+			throw std::runtime_error(std::string("unable to open folder '") + m_name + "' at " + localPath.c_str());
 		}
 
 		// Scan this directory
@@ -107,7 +124,7 @@ namespace AutoBuild
 		while (dirEntry = readdir(dirStream))
 		{
 			// Skip folders like '.', '..'
-			if (dirEntry->d_name[0] == '.' && dirEntry->d_name[1] == '\0')
+			if (dirEntry->d_name[0] == '.')
 			{
 				if (dirEntry->d_name[1] == '\0' || (dirEntry->d_name[1] == '.' && dirEntry->d_name[2] == '\0'))
 				{
@@ -138,7 +155,7 @@ namespace AutoBuild
 					folderIt = m_folderMap.emplace(nameHash, Folder(this, dirEntry->d_name)).first;
 				}
 
-				folderIt->second.ScanFileSystemInternal(folderPath);
+				folderIt->second.ScanFileSystemInternal(localPath / dirEntry->d_name);
 			}
 		}
 	}

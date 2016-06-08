@@ -31,7 +31,7 @@ namespace AutoBuild
 		Repository();
 		~Repository();
 
-		bool LoadConfiguration(const boost::property_tree::ptree::value_type& repositoryConfig);
+		bool LoadConfiguration(const boost::property_tree::ptree& repositoryConfig);
 		bool UpdateAndBuild();
 		bool Install();
 		bool RequiresInstallation() const;

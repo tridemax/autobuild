@@ -10,7 +10,7 @@ namespace AutoBuild
 	}
 
 	//-------------------------------------------------------------------------------------------------
-	bool InstallSiteAction::LoadConfiguration(const boost::property_tree::ptree::value_type& actionConfig, ExceptionReporter reportException, ExceptionReporter reportInvalidProperty)
+	bool InstallSiteAction::LoadConfiguration(const boost::property_tree::ptree& actionConfig, ExceptionReporter reportException, ExceptionReporter reportInvalidProperty)
 	{
 		return true;
 	}

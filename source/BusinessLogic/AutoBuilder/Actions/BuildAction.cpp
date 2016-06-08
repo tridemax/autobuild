@@ -10,7 +10,7 @@ namespace AutoBuild
 	}
 
 	//-------------------------------------------------------------------------------------------------
-	bool BuildAction::LoadConfiguration(const boost::property_tree::ptree::value_type& actionConfig, ExceptionReporter reportException, ExceptionReporter reportInvalidProperty)
+	bool BuildAction::LoadConfiguration(const boost::property_tree::ptree& actionConfig, ExceptionReporter reportException, ExceptionReporter reportInvalidProperty)
 	{
 		// Assume all properties are valid
 		bool successFlag = true;
@@ -18,10 +18,10 @@ namespace AutoBuild
 		try
 		{
 			// Load properties
-			m_buildMethod = BuildMethodStringifier::FromString(actionConfig.second.get<std::string>("buildMethod"));
-			m_buildScript = actionConfig.second.get<std::string>("buildScript");
-			m_buildConfiguration = actionConfig.second.get<std::string>("buildConfiguration");
-			m_buildPlatform = actionConfig.second.get<std::string>("buildPlatform");
+			m_buildMethod = BuildMethodStringifier::FromString(actionConfig.get<std::string>("buildMethod"));
+			m_buildScript = actionConfig.get<std::string>("buildScript");
+			m_buildConfiguration = actionConfig.get<std::string>("buildConfiguration");
+			m_buildPlatform = actionConfig.get<std::string>("buildPlatform");
 
 			// Check properties
 			if (m_buildMethod == BuildMethod::Unknown)

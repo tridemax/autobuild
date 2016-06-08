@@ -24,10 +24,15 @@ namespace AutoBuild
 		{
 			for (auto pathComponentIt = parentPath.begin(); pathComponentIt != parentPath.end(); ++pathComponentIt)
 			{
-				folder = folder->InsertFolder(pathComponentIt->c_str());
+				folder = folder->EnsureFolder(pathComponentIt->c_str());
 			}
 
 			folder->ScanFileSystemRecursively(localPath / parentPath, itemPath.filename().c_str());
 		}
+	}
+
+	//-------------------------------------------------------------------------------------------------
+	void Bundle::Copy(const boost::filesystem::path& localPath, const boost::filesystem::path& destPath)
+	{
 	}
 }

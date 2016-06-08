@@ -142,7 +142,7 @@ namespace AutoBuild
 			{
 				std::unique_ptr<RepositoryEntry> repositoryEntry(new RepositoryEntry());
 
-				if (repositoryEntry->LoadConfiguration(repositoryConfig))
+				if (repositoryEntry->LoadConfiguration(repositoryConfig.second))
 				{
 					m_repositoryList.emplace_back(repositoryEntry.release());
 				}

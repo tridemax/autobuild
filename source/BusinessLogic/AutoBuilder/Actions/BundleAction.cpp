@@ -10,7 +10,7 @@ namespace AutoBuild
 	}
 
 	//-------------------------------------------------------------------------------------------------
-	bool BundleAction::LoadConfiguration(const boost::property_tree::ptree::value_type& actionConfig, ExceptionReporter reportException, ExceptionReporter reportInvalidProperty)
+	bool BundleAction::LoadConfiguration(const boost::property_tree::ptree& actionConfig, ExceptionReporter reportException, ExceptionReporter reportInvalidProperty)
 	{
 		// Assume all properties are valid
 		bool successFlag = true;
@@ -18,7 +18,7 @@ namespace AutoBuild
 		try
 		{
 			// Load items
-			for (const auto& itemConfig : actionConfig.second.get_child("items"))
+			for (const auto& itemConfig : actionConfig.get_child("items"))
 			{
 				m_itemList.emplace_back(itemConfig.second.data());
 			}

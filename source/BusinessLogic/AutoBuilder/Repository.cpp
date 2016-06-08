@@ -21,7 +21,7 @@ namespace AutoBuild
 	}
 
 	//-------------------------------------------------------------------------------------------------
-	bool Repository::LoadConfiguration(const boost::property_tree::ptree::value_type& repositoryConfig)
+	bool Repository::LoadConfiguration(const boost::property_tree::ptree& repositoryConfig)
 	{
 		auto reportException = [](const char* exception)
 		{
@@ -39,11 +39,11 @@ namespace AutoBuild
 		try
 		{
 			// Load properties
-			m_sourceControl = SourceControlStringifier::FromString(repositoryConfig.second.get<std::string>("sourceControl"));
-			m_sourceControlLogin = repositoryConfig.second.get<std::string>("sourceControlLogin");
-			m_sourceControlPassword = repositoryConfig.second.get<std::string>("sourceControlPassword");
-			m_sourceUrl = repositoryConfig.second.get<std::string>("sourceUrl");
-			m_localPath = repositoryConfig.second.get<std::string>("localPath");
+			m_sourceControl = SourceControlStringifier::FromString(repositoryConfig.get<std::string>("sourceControl"));
+			m_sourceControlLogin = repositoryConfig.get<std::string>("sourceControlLogin");
+			m_sourceControlPassword = repositoryConfig.get<std::string>("sourceControlPassword");
+			m_sourceUrl = repositoryConfig.get<std::string>("sourceUrl");
+			m_localPath = repositoryConfig.get<std::string>("localPath");
 
 			// Check properties
 			if (m_sourceControl == SourceControl::Unknown)
@@ -53,7 +53,7 @@ namespace AutoBuild
 			}
 
 			// Load actions
-			for (const auto& actionConfig : repositoryConfig.second.get_child("actions"))
+			for (const auto& actionConfig : repositoryConfig.get_child("actions"))
 			{
 				std::unique_ptr<IAction> newAction;
 
@@ -78,7 +78,7 @@ namespace AutoBuild
 
 				if (newAction)
 				{
-					if (newAction->LoadConfiguration(actionConfig, reportException, reportInvalidProperty))
+					if (newAction->LoadConfiguration(actionConfig.second, reportException, reportInvalidProperty))
 					{
 						m_actionList.emplace_back(newAction.release());
 					}
