@@ -113,27 +113,27 @@ QMAKE_EXTRA_TARGETS += first copydata
 #-------------------------------------------------------------------------------------------------
 SOURCES += \
     platform/linux/main.cpp \
-    source/BusinessLogic/AutoBuilder/AutoBuilder.cpp \
-    source/BusinessLogic/AutoBuilder/Repository.cpp \
-    source/BusinessLogic/AutoBuilder/Actions/BuildAction.cpp \
-    source/BusinessLogic/AutoBuilder/Actions/BundleAction.cpp \
-    source/BusinessLogic/AutoBuilder/Actions/InstallSiteAction.cpp \
-    source/BusinessLogic/AutoBuilder/Actions/InstallServiceAction.cpp \
-    source/BusinessLogic/Bundle/Bundle.cpp \
-    source/BusinessLogic/Bundle/File.cpp \
-    source/BusinessLogic/Bundle/Folder.cpp
+	source/AutoBuilder/AutoBuilder.cpp \
+	source/AutoBuilder/Repository.cpp \
+	source/AutoBuilder/Actions/BuildAction.cpp \
+	source/AutoBuilder/Actions/BundleAction.cpp \
+	source/AutoBuilder/Actions/InstallSiteAction.cpp \
+	source/AutoBuilder/Actions/InstallServiceAction.cpp \
+    source/Bundle/Bundle.cpp \
+    source/Bundle/File.cpp \
+    source/Bundle/Folder.cpp
 
 HEADERS += \
     platform/linux/platform.h \
-    source/BusinessLogic/AutoBuilder/AutoBuilder.h \
-    source/BusinessLogic/AutoBuilder/Repository.h \
-    source/BusinessLogic/AutoBuilder/Miscellaneous.h \
-    source/BusinessLogic/AutoBuilder/Actions/BuildAction.h \
-    source/BusinessLogic/AutoBuilder/Actions/BundleAction.h \
-    source/BusinessLogic/AutoBuilder/Actions/IAction.h \
-    source/BusinessLogic/AutoBuilder/Actions/InstallSiteAction.h \
-    source/BusinessLogic/AutoBuilder/SharedState.h \
-    source/BusinessLogic/AutoBuilder/Actions/InstallServiceAction.h \
-    source/BusinessLogic/Bundle/Bundle.h \
-    source/BusinessLogic/Bundle/File.h \
-    source/BusinessLogic/Bundle/Folder.h
+	source/AutoBuilder/AutoBuilder.h \
+	source/AutoBuilder/Repository.h \
+	source/AutoBuilder/Miscellaneous.h \
+	source/AutoBuilder/Actions/BuildAction.h \
+	source/AutoBuilder/Actions/BundleAction.h \
+	source/AutoBuilder/Actions/IAction.h \
+	source/AutoBuilder/Actions/InstallSiteAction.h \
+	source/AutoBuilder/SharedState.h \
+	source/AutoBuilder/Actions/InstallServiceAction.h \
+    source/Bundle/Bundle.h \
+    source/Bundle/File.h \
+    source/Bundle/Folder.h

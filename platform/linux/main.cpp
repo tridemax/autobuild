@@ -1,5 +1,5 @@
 #include "platform.h"
-#include "../../source/BusinessLogic/AutoBuilder/AutoBuilder.h"
+#include "../../source/AutoBuilder/AutoBuilder.h"
 
 
 //-------------------------------------------------------------------------------------------------
@@ -19,19 +19,24 @@ int main(int argc, const char** argv)
 	}
 
 	// Build path to configuration file
-	std::string configPath;
+	boost::filesystem::path configPath;
 
-	if (argc >= 2 && argv[1] && argv[1][0])
+	for (int32_t argumentIndex = 1; argumentIndex < argc; ++argumentIndex)
 	{
-		configPath = argv[1];
+		if (boost::starts_with(argv[argumentIndex], "--config"))
+		{
+			if (argumentIndex + 1 != argc)
+			{
+				configPath = argv[++argumentIndex];
+			}
+		}
 	}
-	else
-	{
-		boost::filesystem::path elfPath = argv[0];
-		elfPath.remove_filename();
-		elfPath /= "autobuild.conf";
 
-		configPath = elfPath.string();
+	if (configPath.empty())
+	{
+		configPath = argv[0];
+		configPath.remove_filename();
+		configPath /= "autobuild.conf";
 	}
 
 	// Run the autobuild

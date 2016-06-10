@@ -111,7 +111,7 @@ namespace AutoBuild
 	//-------------------------------------------------------------------------------------------------
 	void Folder::ScanFileSystemInternal(const boost::filesystem::path& localPath)
 	{
-		dir_stream dirStream(localPath.c_str());
+		Aux::DirectoryStream dirStream(localPath.c_str());
 
 		if (!dirStream)
 		{

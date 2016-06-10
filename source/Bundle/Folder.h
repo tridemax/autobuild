@@ -14,30 +14,6 @@ namespace AutoBuild
 		typedef boost::unordered_map<uint64_t, Folder, Aux::DummyHash<uint64_t> > FolderMap;
 		typedef boost::unordered_map<uint64_t, File, Aux::DummyHash<uint64_t> > FileMap;
 
-		class dir_stream
-		{
-		private:
-			DIR*						m_internalStream;
-
-		public:
-			forceinline dir_stream(const char* path) : m_internalStream(opendir(path))
-			{
-			}
-
-			forceinline ~dir_stream()
-			{
-				if (m_internalStream)
-				{
-					closedir(m_internalStream);
-				}
-			}
-
-			forceinline operator DIR* ()
-			{
-				return m_internalStream;
-			}
-		};
-
 	private:
 		Folder*						m_parent;
 		std::string					m_name;
