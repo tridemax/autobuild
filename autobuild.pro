@@ -19,6 +19,7 @@ CONFIG(debug, debug|release) {
 TEMPLATE = app
 CONFIG += console precompile_header c++14
 CONFIG -= qt
+MAKEFILE = $$_PRO_FILE_PWD_/autobuild.makefile
 
 #-------------------------------------------------------------------------------------------------
 # warnings
@@ -74,12 +75,16 @@ LIBS += \
 
 CONFIG(debug, debug|release) {
 	LIBS += \
+		-l:libboost_system.a \
+		-l:libboost_filesystem.a \
 		-lauxiliary_debug \
 		-ltbb_debug \
 		-lpthread
 
 } else {
 	LIBS += \
+		-l:libboost_system.a \
+		-l:libboost_filesystem.a \
 		-lauxiliary \
 		-ltbb \
 		-lpthread \

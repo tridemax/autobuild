@@ -42,7 +42,7 @@ int main(int argc, const char** argv)
 	// Run the autobuild
 	AutoBuild::AutoBuilder autoBuilder;
 
-	int exitCode = 0;
+	int32_t exitCode = 0;
 
 	if (!autoBuilder.Run(configPath.c_str()))
 	{
