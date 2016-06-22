@@ -41,17 +41,20 @@ namespace AutoBuild
 		}
 
 		// Update and build repositories
-		tbb::task_group buildingTaskGroup;
+		std::list<std::thread> buildingThreadList;
 
 		for (auto& repository : m_repositoryList)
 		{
-			buildingTaskGroup.run([&repository]()
+			buildingThreadList.emplace_back(std::thread([&repository]()
 			{
 				repository->m_requiresInstallation = repository->UpdateAndBuild() && repository->RequiresInstallation();
-			});
+			}));
 		}
 
-		buildingTaskGroup.wait();
+		for (auto& buildingThread : buildingThreadList)
+		{
+			buildingThread.join();
+		}
 
 		// Build dependencies tree
 		/*
@@ -91,6 +94,7 @@ namespace AutoBuild
 			}
 		}
 */
+		/*
 		// Install repositories
 		tbb::task_group installingTaskGroup;
 
@@ -106,6 +110,7 @@ namespace AutoBuild
 		}
 
 		installingTaskGroup.wait();
+		*/
 
 		// Start all dependent daemons
 		/*

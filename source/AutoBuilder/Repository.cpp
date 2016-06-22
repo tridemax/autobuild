@@ -120,6 +120,12 @@ namespace AutoBuild
 			return false;
 		}
 
+		// Nothing to build
+		if (!RequiresInstallation())
+		{
+			return true;
+		}
+
 		// Run all non-install actions
 		for (auto& action : m_actionList)
 		{
@@ -158,7 +164,7 @@ namespace AutoBuild
 	//-------------------------------------------------------------------------------------------------
 	bool Repository::RequiresInstallation() const
 	{
-		return true;
+		return m_hasUpdates || m_lastAttemptFailed;
 	}
 
 	//-------------------------------------------------------------------------------------------------

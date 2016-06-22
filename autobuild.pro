@@ -40,13 +40,13 @@ QMAKE_CXXFLAGS_WARN_ON += \
 QMAKE_CXXFLAGS += \
 	-m64 \
 	-msse -msse2 -msse3 -mssse3 -msse4 -msse4.1 -msse4.2 -mavx -mf16c \
+	-g \
 	-fpic \
 	-fdata-sections \
 	-ffunction-sections \
-	-I$$_PRO_FILE_PWD_/../tbb/include \
-	-I$$_PRO_FILE_PWD_/../boost \
+	-fno-strict-aliasing \
 	-I$$_PRO_FILE_PWD_/../auxiliary \
-	-I$$_PRO_FILE_PWD_/platform/linux \
+	-I$$_PRO_FILE_PWD_/platform/linux
 
 PRECOMPILED_HEADER = $$_PRO_FILE_PWD_/platform/linux/platform.h
 
@@ -68,26 +68,22 @@ CONFIG(debug, debug|release) {
 #-------------------------------------------------------------------------------------------------
 LIBS += \
 	-L$$DESTDIR \
-	-L$$_PRO_FILE_PWD_/../tbb/lib/intel64/gcc4.4 \
 	-Wl,--unresolved-symbols=report-all \
 	-Wl,--gc-sections \
 	-Wl,-rpath,./
 
+LIBS += \
+	-l:libboost_system.a \
+	-l:libboost_filesystem.a \
+	-lpthread \
+
 CONFIG(debug, debug|release) {
 	LIBS += \
-		-l:libboost_system.a \
-		-l:libboost_filesystem.a \
-		-lauxiliary_debug \
-		-ltbb_debug \
-		-lpthread
+		-lauxiliary_debug
 
 } else {
 	LIBS += \
-		-l:libboost_system.a \
-		-l:libboost_filesystem.a \
 		-lauxiliary \
-		-ltbb \
-		-lpthread \
 		-O3
 }
 
@@ -97,24 +93,35 @@ QMAKE_LFLAGS_RELEASE *= -Wl,-O3
 #-------------------------------------------------------------------------------------------------
 # dependencies
 #-------------------------------------------------------------------------------------------------
-CONFIG(debug, debug|release) {
-	copydata.commands = cp -f -v \
-		$$_PRO_FILE_PWD_/../tbb/lib/intel64/gcc4.4/libtbb_debug.so \
-		$$_PRO_FILE_PWD_/../tbb/lib/intel64/gcc4.4/libtbb_debug.so.2 \
-		$$DESTDIR
+makedist.commands = objcopy -v --strip-debug --strip-unneeded --target elf64-x86-64 $$DESTDIR/$${TARGET} $$DESTDIR/$${TARGET}_dist
 
-} else {
-	copydata.commands = cp -f -v \
-		$$_PRO_FILE_PWD_/../tbb/lib/intel64/gcc4.4/libtbb.so \
-		$$_PRO_FILE_PWD_/../tbb/lib/intel64/gcc4.4/libtbb.so.2 \
-		$$DESTDIR
-}
-
-first.depends = $(first) copydata
+first.depends = $(first) makedist
 export(first.depends)
-export(copydata.commands)
+export(makedist.commands)
 
-QMAKE_EXTRA_TARGETS += first copydata
+QMAKE_EXTRA_TARGETS += first makedist
+
+#-------------------------------------------------------------------------------------------------
+# dependencies
+#-------------------------------------------------------------------------------------------------
+#CONFIG(debug, debug|release) {
+#	copydata.commands = cp -f -v \
+#		$$_PRO_FILE_PWD_/../tbb/lib/intel64/gcc4.4/libtbb_debug.so \
+#		$$_PRO_FILE_PWD_/../tbb/lib/intel64/gcc4.4/libtbb_debug.so.2 \
+#		$$DESTDIR
+#
+#} else {
+#	copydata.commands = cp -f -v \
+#		$$_PRO_FILE_PWD_/../tbb/lib/intel64/gcc4.4/libtbb.so \
+#		$$_PRO_FILE_PWD_/../tbb/lib/intel64/gcc4.4/libtbb.so.2 \
+#		$$DESTDIR
+#}
+
+#first.depends = $(first) copydata
+#export(first.depends)
+#export(copydata.commands)
+#
+#QMAKE_EXTRA_TARGETS += first copydata
 
 #-------------------------------------------------------------------------------------------------
 # files

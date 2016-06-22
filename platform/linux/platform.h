@@ -56,6 +56,7 @@
 #include <typeindex>
 #include <algorithm>
 #include <chrono>
+#include <thread>
 
 //-------------------------------------------------------------------------------------------------
 /// third party
@@ -68,6 +69,5 @@
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/json_parser.hpp>
 #include <boost/unordered_map.hpp>
-#include <tbb/tbb.h>
 
 #include <auxiliary.h>
