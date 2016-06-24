@@ -46,6 +46,9 @@ QMAKE_CXXFLAGS += \
 	-ffunction-sections \
 	-fno-strict-aliasing \
 	-I$$_PRO_FILE_PWD_/../auxiliary \
+	-I$$_PRO_FILE_PWD_/../postgres \
+	-I$$_PRO_FILE_PWD_/../thirdparty/postgresql/src/include \
+	-I$$_PRO_FILE_PWD_/../thirdparty/postgresql_config/linux \
 	-I$$_PRO_FILE_PWD_/platform/linux
 
 PRECOMPILED_HEADER = $$_PRO_FILE_PWD_/platform/linux/platform.h
@@ -136,7 +139,7 @@ SOURCES += \
 	source/AutoBuilder/Actions/InstallServiceAction.cpp \
     source/Bundle/Bundle.cpp \
     source/Bundle/File.cpp \
-    source/Bundle/Folder.cpp
+	source/Bundle/Folder.cpp
 
 HEADERS += \
     platform/linux/platform.h \
@@ -151,4 +154,13 @@ HEADERS += \
 	source/AutoBuilder/Actions/InstallServiceAction.h \
     source/Bundle/Bundle.h \
     source/Bundle/File.h \
-    source/Bundle/Folder.h
+    source/Bundle/Folder.h \
+    ../postgres/postgres.h \
+    ../postgres/source/ArgumentsDynamicBinder.h \
+    ../postgres/source/ArgumentsStaticBinder.h \
+    ../postgres/source/ArgumentsVerifier.h \
+    ../postgres/source/PostgresClient.h \
+    ../postgres/source/PostgresConnection.h \
+    ../postgres/source/PostgresStatement.h \
+    ../postgres/source/PostgresTemplate.h \
+    ../postgres/source/PostgresTraits.h

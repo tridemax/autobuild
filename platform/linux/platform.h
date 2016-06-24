@@ -69,5 +69,7 @@
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/json_parser.hpp>
 #include <boost/unordered_map.hpp>
+#include <boost/thread/tss.hpp>
 
 #include <auxiliary.h>
+#include <postgres.h>
