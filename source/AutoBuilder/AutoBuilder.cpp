@@ -26,26 +26,12 @@ namespace AutoBuild
 			return false;
 		}
 
-		// Ensure logs folder exists
-		try
-		{
-			if (!boost::filesystem::is_directory(Repository::LogsFolder))
-			{
-				boost::filesystem::create_directories(Repository::LogsFolder);
-			}
-		}
-		catch (std::exception& exception)
-		{
-			m_lastError = exception.what();
-			return false;
-		}
-
 		// Update and build repositories
-		std::list<std::thread> buildingThreadList;
+		std::list<boost::thread> buildingThreadList;
 
 		for (auto& repository : m_repositoryList)
 		{
-			buildingThreadList.emplace_back(std::thread([&repository]()
+			buildingThreadList.emplace_back(boost::thread([&repository]()
 			{
 				repository->m_requiresInstallation = repository->UpdateAndBuild() && repository->RequiresInstallation();
 			}));

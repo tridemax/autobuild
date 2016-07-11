@@ -93,7 +93,7 @@ namespace AutoBuild
 		commandLine.reserve(512u);
 
 		commandLine += "cd ";
-		commandLine += m_localPath.string();
+		commandLine += m_cacheFolder.string();
 		commandLine += " && ";
 		commandLine += "make ";
 		commandLine += " 2>&1";
@@ -156,7 +156,7 @@ namespace AutoBuild
 		commandLine.reserve(512u);
 
 		commandLine += "cd ";
-		commandLine += m_localPath.string();
+		commandLine += m_cacheFolder.string();
 		commandLine += " && ";
 		commandLine += "qmake -makefile -nocache -o Makefile -Wall CONFIG+=";
 		commandLine += m_buildConfiguration;
@@ -233,7 +233,7 @@ namespace AutoBuild
 		commandLine.reserve(512u);
 
 		commandLine += "cd ";
-		commandLine += m_localPath.string();
+		commandLine += m_cacheFolder.string();
 		commandLine += " && ";
 		commandLine += "xbuild /nologo /verbosity:minimal /target:rebuild /property:configuration=";
 		commandLine += m_buildConfiguration;

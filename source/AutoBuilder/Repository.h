@@ -25,9 +25,6 @@ namespace AutoBuild
 		bool						m_hasUpdates;
 
 	public:
-		static const char			LogsFolder[];
-
-	public:
 		Repository();
 		~Repository();
 
@@ -38,7 +35,7 @@ namespace AutoBuild
 
 	private:
 		bool OpenLogStream();
-		void ExtractLastAttemptStatus(const char* logPath);
+		void ExtractLastAttemptStatus(const char* logFilePath);
 		bool Update();
 		bool SubversionGetRevision(uint64_t& revisionValue);
 		bool SubversionUpdate(uint64_t& revisionValue);

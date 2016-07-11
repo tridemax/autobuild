@@ -11,8 +11,8 @@ namespace AutoBuild
 	class Folder : public boost::noncopyable
 	{
 	private:
-		typedef boost::unordered_map<uint64_t, Folder, Aux::DummyHash<uint64_t> > FolderMap;
-		typedef boost::unordered_map<uint64_t, File, Aux::DummyHash<uint64_t> > FileMap;
+		typedef boost::unordered_map<uint64_t, Folder, aux::DummyHash<uint64_t> > FolderMap;
+		typedef boost::unordered_map<uint64_t, File, aux::DummyHash<uint64_t> > FileMap;
 
 	private:
 		Folder*						m_parent;

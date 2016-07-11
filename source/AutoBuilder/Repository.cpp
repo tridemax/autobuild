@@ -8,8 +8,6 @@
 
 namespace AutoBuild
 {
-	const char Repository::LogsFolder[] = "/var/log/autobuild-logs";
-
 	//-------------------------------------------------------------------------------------------------
 	Repository::Repository() : m_lastAttemptFailed(false), m_hasUpdates(false)
 	{
@@ -39,11 +37,12 @@ namespace AutoBuild
 		try
 		{
 			// Load properties
+			m_logFolder = repositoryConfig.get<std::string>("logFolder");
+			m_cacheFolder = repositoryConfig.get<std::string>("cacheFolder");
 			m_sourceControl = SourceControlStringifier::FromString(repositoryConfig.get<std::string>("sourceControl"));
 			m_sourceControlLogin = repositoryConfig.get<std::string>("sourceControlLogin");
 			m_sourceControlPassword = repositoryConfig.get<std::string>("sourceControlPassword");
 			m_sourceUrl = repositoryConfig.get<std::string>("sourceUrl");
-			m_localPath = repositoryConfig.get<std::string>("localPath");
 
 			// Check properties
 			if (m_sourceControl == SourceControl::Unknown)
@@ -170,15 +169,25 @@ namespace AutoBuild
 	//-------------------------------------------------------------------------------------------------
 	bool Repository::OpenLogStream()
 	{
-		// Build log path
 		boost::filesystem::path logPath;
 
-		logPath /= LogsFolder;
-		logPath /= m_localPath.filename();
+		logPath /= m_logFolder;
+		logPath /= m_cacheFolder.filename();
 
 		// Try extract last build status before the log will be overwritten
 		m_lastAttemptFailed = false;
+
 		ExtractLastAttemptStatus(logPath.c_str());
+
+		// Ensure log folder exists
+		try
+		{
+			boost::filesystem::create_directories(m_logFolder);
+		}
+		catch (...)
+		{
+			return false;
+		}
 
 		// Truncate log file and open for writing
 		if (!m_logStream.is_open())
@@ -190,9 +199,9 @@ namespace AutoBuild
 	}
 
 	//-------------------------------------------------------------------------------------------------
-	void Repository::ExtractLastAttemptStatus(const char* logPath)
+	void Repository::ExtractLastAttemptStatus(const char* logFilePath)
 	{
-		FILE* logFile = fopen(logPath, "r");
+		FILE* logFile = fopen(logFilePath, "r");
 
 		if (!logFile)
 		{
@@ -235,7 +244,7 @@ namespace AutoBuild
 			break;
 
 		case SourceControl::Subversion:
-			if (boost::filesystem::is_directory(m_localPath / ".svn"))
+			if (boost::filesystem::is_directory(m_cacheFolder / ".svn"))
 			{
 				uint64_t currentRevision = 0u, updatedRevision = 0u;
 
@@ -276,7 +285,7 @@ namespace AutoBuild
 		case SourceControl::Subversion:
 			try
 			{
-				boost::filesystem::remove_all(m_localPath);
+				boost::filesystem::remove_all(m_cacheFolder);
 			}
 			catch (std::exception& exception)
 			{
@@ -309,7 +318,7 @@ namespace AutoBuild
 		commandLine.reserve(512u);
 
 		commandLine += "svn info ";
-		commandLine += m_localPath.string();
+		commandLine += m_cacheFolder.string();
 		commandLine += " 2>&1";
 
 		boost::replace_all(commandLine, "\'", "\\\'");
@@ -375,7 +384,7 @@ namespace AutoBuild
 		commandLine += " --password ";
 		commandLine += m_sourceControlPassword;
 		commandLine += ' ';
-		commandLine += m_localPath.string();
+		commandLine += m_cacheFolder.string();
 		commandLine += " 2>&1";
 
 		boost::replace_all(commandLine, "\'", "\\\'");
@@ -451,7 +460,7 @@ namespace AutoBuild
 		commandLine += ' ';
 		commandLine += m_sourceUrl;
 		commandLine += ' ';
-		commandLine += m_localPath.string();
+		commandLine += m_cacheFolder.string();
 		commandLine += " 2>&1";
 
 		boost::replace_all(commandLine, "\'", "\\\'");

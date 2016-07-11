@@ -78,6 +78,7 @@ LIBS += \
 LIBS += \
 	-l:libboost_system.a \
 	-l:libboost_filesystem.a \
+	-l:libboost_thread.a \
 	-lpthread \
 
 CONFIG(debug, debug|release) {
@@ -154,13 +155,4 @@ HEADERS += \
 	source/AutoBuilder/Actions/InstallServiceAction.h \
     source/Bundle/Bundle.h \
     source/Bundle/File.h \
-    source/Bundle/Folder.h \
-    ../postgres/postgres.h \
-    ../postgres/source/ArgumentsDynamicBinder.h \
-    ../postgres/source/ArgumentsStaticBinder.h \
-    ../postgres/source/ArgumentsVerifier.h \
-    ../postgres/source/PostgresClient.h \
-    ../postgres/source/PostgresConnection.h \
-    ../postgres/source/PostgresStatement.h \
-    ../postgres/source/PostgresTemplate.h \
-    ../postgres/source/PostgresTraits.h
+	source/Bundle/Folder.h

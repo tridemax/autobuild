@@ -22,7 +22,7 @@ namespace AutoBuild
 	//-------------------------------------------------------------------------------------------------
 	File* Folder::InsertFile(const char* name)
 	{
-		const uint64_t nameHash = Aux::Hash64(name, strlen(name));
+		const uint64_t nameHash = aux::Hash64(name, strlen(name));
 
 		if (m_fileMap.find(nameHash) != m_fileMap.end())
 		{
@@ -43,7 +43,7 @@ namespace AutoBuild
 	//-------------------------------------------------------------------------------------------------
 	Folder* Folder::InsertFolder(const char* name)
 	{
-		const uint64_t nameHash = Aux::Hash64(name, strlen(name));
+		const uint64_t nameHash = aux::Hash64(name, strlen(name));
 
 		// Check for files with same name
 		if (m_fileMap.find(nameHash) != m_fileMap.end())
@@ -67,7 +67,7 @@ namespace AutoBuild
 	//-------------------------------------------------------------------------------------------------
 	Folder* Folder::EnsureFolder(const char* name)
 	{
-		const uint64_t nameHash = Aux::Hash64(name, strlen(name));
+		const uint64_t nameHash = aux::Hash64(name, strlen(name));
 
 		auto folderIt = m_folderMap.find(nameHash);
 
@@ -111,7 +111,7 @@ namespace AutoBuild
 	//-------------------------------------------------------------------------------------------------
 	void Folder::ScanFileSystemInternal(const boost::filesystem::path& localPath)
 	{
-		Aux::DirectoryStream dirStream(localPath.c_str());
+		aux::DirectoryStream dirStream(localPath.c_str());
 
 		if (!dirStream)
 		{
@@ -135,7 +135,7 @@ namespace AutoBuild
 			// Process only regular files and folders, skip all other ones
 			if (dirEntry->d_type & DT_REG)
 			{
-				const uint64_t nameHash = Aux::Hash64(dirEntry->d_name, strlen(dirEntry->d_name));
+				const uint64_t nameHash = aux::Hash64(dirEntry->d_name, strlen(dirEntry->d_name));
 
 				auto fileIt = m_fileMap.find(nameHash);
 
@@ -146,7 +146,7 @@ namespace AutoBuild
 			}
 			else if (dirEntry->d_type & DT_DIR)
 			{
-				const uint64_t nameHash = Aux::Hash64(dirEntry->d_name, strlen(dirEntry->d_name));
+				const uint64_t nameHash = aux::Hash64(dirEntry->d_name, strlen(dirEntry->d_name));
 
 				auto folderIt = m_folderMap.find(nameHash);
 

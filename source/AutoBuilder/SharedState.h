@@ -11,9 +11,10 @@ namespace AutoBuild
 	class SharedState
 	{
 	public:
-		boost::filesystem::path		m_localPath;
+		boost::filesystem::path		m_logFolder;
+		boost::filesystem::path		m_cacheFolder;
 		Bundle						m_bundle;
-		Aux::Clock					m_clock;
+		aux::Clock					m_clock;
 		std::ofstream				m_logStream;
 	};
 
@@ -23,14 +24,16 @@ namespace AutoBuild
 	class SharedStateRef
 	{
 	public:
-		boost::filesystem::path&	m_localPath;
+		boost::filesystem::path&	m_logFolder;
+		boost::filesystem::path&	m_cacheFolder;
 		Bundle&						m_bundle;
-		Aux::Clock&					m_clock;
+		aux::Clock&					m_clock;
 		std::ofstream&				m_logStream;
 
 	public:
 		inline SharedStateRef(SharedState& sharedState) :
-			m_localPath(sharedState.m_localPath),
+			m_logFolder(sharedState.m_logFolder),
+			m_cacheFolder(sharedState.m_cacheFolder),
 			m_bundle(sharedState.m_bundle),
 			m_clock(sharedState.m_clock),
 			m_logStream(sharedState.m_logStream)

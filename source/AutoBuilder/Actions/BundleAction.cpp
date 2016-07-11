@@ -43,7 +43,7 @@ namespace AutoBuild
 		{
 			for (const auto& item : m_itemList)
 			{
-				m_bundle.AddItem(m_localPath, item);
+				m_bundle.AddItem(m_cacheFolder, item);
 			}
 		}
 		catch (std::exception& exception)
